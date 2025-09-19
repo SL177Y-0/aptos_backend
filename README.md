@@ -1,4 +1,4 @@
-# Aptos Move Deployer (Minimal Backend)
+# Aptos Move Deployer (Backend)
 
 A slim backend that accepts an Aptos Move package archive, compiles it with the Aptos CLI, publishes it to a selected network, and returns the module address and transaction hash.
 
