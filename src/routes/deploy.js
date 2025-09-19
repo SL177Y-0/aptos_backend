@@ -51,8 +51,8 @@ router.post('/', upload.single('move_package'), async (req, res) => {
     const packageDir = path.join(workDir, 'package');
     fs.mkdirSync(packageDir, { recursive: true });
 
-    // Extract archive
-    await extractArchive(req.file.path, packageDir);
+    // Extract archive using original filename to determine type
+    await extractArchive(req.file.path, packageDir, req.file.originalname);
 
     // Find Move.toml
     const moveTomlPath = findMoveToml(packageDir);
@@ -61,7 +61,6 @@ router.post('/', upload.single('move_package'), async (req, res) => {
     }
     const pkgRoot = path.dirname(moveTomlPath);
 
-    // Optionally write named addresses into CLI arg list
     // Compile
     await runAptos(['move', 'compile', '--package-dir', pkgRoot]);
 
@@ -101,11 +100,43 @@ router.post('/', upload.single('move_package'), async (req, res) => {
   }
 });
 
-function extractArchive(archivePath, destDir) {
-  if (archivePath.endsWith('.zip')) {
+function extractArchive(archivePath, destDir, originalName) {
+  // Use original filename to determine archive type
+  const fileName = originalName.toLowerCase();
+  
+  if (fileName.endsWith('.zip')) {
     return extractZip(archivePath, destDir);
+  } else if (fileName.endsWith('.tar.gz') || fileName.endsWith('.tgz')) {
+    return extractTar(archivePath, destDir);
+  } else if (fileName.endsWith('.tar')) {
+    return extractTar(archivePath, destDir);
+  } else {
+    // Fallback: try to detect by file content
+    return detectAndExtract(archivePath, destDir);
   }
-  return extractTar(archivePath, destDir);
+}
+
+function detectAndExtract(archivePath, destDir) {
+  return new Promise((resolve, reject) => {
+    // Read first few bytes to detect file type
+    const fd = fs.openSync(archivePath, 'r');
+    const buffer = Buffer.alloc(512);
+    fs.readSync(fd, buffer, 0, 512, 0);
+    fs.closeSync(fd);
+    
+    // Check for ZIP signature (PK)
+    if (buffer[0] === 0x50 && buffer[1] === 0x4B) {
+      return extractZip(archivePath, destDir).then(resolve).catch(reject);
+    }
+    
+    // Check for GZIP signature
+    if (buffer[0] === 0x1F && buffer[1] === 0x8B) {
+      return extractTar(archivePath, destDir).then(resolve).catch(reject);
+    }
+    
+    // Default to tar for other cases
+    return extractTar(archivePath, destDir).then(resolve).catch(reject);
+  });
 }
 
 function extractZip(zipPath, extractDir) {

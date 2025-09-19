@@ -35,4 +35,10 @@ curl -X POST "http://localhost:3001/api/deploy" \
   - `DEPLOYER_PRIVATE_KEY` – hex private key used by Aptos CLI
 - Optional (defaults in app):
   - `DEPLOYER_ADDRESS`, `APTOS_NODE_URL_DEVNET/TESTNET/MAINNET`, `JOB_TIMEOUT_SECONDS`, `MAX_UPLOAD_MB`, `PORT`
-//aptos.dev/build/cli
+
+## Security notes
+- Do not commit secrets. Use env vars, Docker secrets, or bind mounts (see `ENV_SOURCING_GUIDE.md`).
+- Ensure the deployer account is funded on the target network.
+
+## Reference
+- Aptos CLI – Install, Setup, and Use the Command-Line Interface: https://aptos.dev/build/cli
