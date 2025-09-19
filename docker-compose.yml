@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        APTOS_CLI_VERSION: ${APTOS_CLI_VERSION:-3.0.0}
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - API_TOKEN=${API_TOKEN}
+      - DEPLOYER_PRIVATE_KEY=${DEPLOYER_PRIVATE_KEY}
+      - APTOS_NODE_URL_DEVNET=${APTOS_NODE_URL_DEVNET:-https://fullnode.devnet.aptoslabs.com/v1}
+      - APTOS_NODE_URL_TESTNET=${APTOS_NODE_URL_TESTNET:-https://fullnode.testnet.aptoslabs.com/v1}
+      - APTOS_NODE_URL_MAINNET=${APTOS_NODE_URL_MAINNET:-https://fullnode.mainnet.aptoslabs.com/v1}
+      - JOB_TIMEOUT_SECONDS=${JOB_TIMEOUT_SECONDS:-300}
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-50}
+      - FRONTEND_URL=http://localhost:3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  default:
+    name: aptos-move-deployer
