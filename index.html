@@ -6,16 +6,24 @@
     <title>Aptos Contract Deployer</title>
     <style>
         body { font-family: sans-serif; margin: 2em; }
-        textarea { width: 100%; height: 150px; margin-bottom: 1em; }
+        textarea { width: 100%; height: 150px; margin-bottom: 1em; border: 1px solid #ddd; padding: 8px; border-radius: 4px; }
+        input[type="file"] { margin-bottom: 10px; padding: 5px; }
+        small { color: #666; display: block; margin-bottom: 8px; }
         pre { background-color: #f4f4f4; padding: 1em; border-radius: 5px; }
+        #uploadedFiles { background-color: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef; }
+        button { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #0056b3; }
+        .form-section { margin-bottom: 2em; padding: 1em; border: 1px solid #e9ecef; border-radius: 5px; }
     </style>
 </head>
 <body>
     <h1>Aptos Contract Deployer</h1>
     <form id="deployForm">
-        <div>
-            <label for="moveToml">Move.toml Content:</label>
-            <textarea id="moveToml" required>[package]
+        <div class="form-section">
+            <label for="moveTomlFile">Move.toml File:</label>
+            <input type="file" id="moveTomlFile" accept=".toml" onchange="handleFileUpload('moveTomlFile', 'moveToml')">
+            <small>Or paste content manually below:</small>
+            <textarea id="moveToml" placeholder="Paste your Move.toml content here or upload a file above..." required>[package]
 name = "HelloBlockchain"
 version = "1.0.0"
 
@@ -23,9 +31,11 @@ version = "1.0.0"
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
             </textarea>
         </div>
-        <div>
-            <label for="contractFile">Contract (.move) Content:</label>
-            <textarea id="contractFile" required>module {{ADDR}}::hello_blockchain {
+        <div class="form-section">
+            <label for="contractFileInput">Contract File(s):</label>
+            <input type="file" id="contractFileInput" accept=".move" multiple onchange="handleContractFileUpload()">
+            <small>Upload one or more .move files, or paste content manually below:</small>
+            <textarea id="contractFile" placeholder="Paste your Move contract content here or upload files above..." required>module {{ADDR}}::hello_blockchain {
     use std::string;
     use std::signer;
 
@@ -38,6 +48,7 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
     }
 }
 </textarea>
+            <div id="uploadedFiles" style="margin-top: 10px;"></div>
         </div>
         <button type="submit">Deploy</button>
     </form>
@@ -47,6 +58,56 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
     </div>
 
     <script>
+        // Handle single file upload (for Move.toml)
+        function handleFileUpload(fileInputId, textareaId) {
+            const fileInput = document.getElementById(fileInputId);
+            const textarea = document.getElementById(textareaId);
+            
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    textarea.value = e.target.result;
+                };
+                
+                reader.readAsText(file);
+            }
+        }
+
+        // Handle multiple contract file uploads
+        function handleContractFileUpload() {
+            const fileInput = document.getElementById('contractFileInput');
+            const uploadedFilesDiv = document.getElementById('uploadedFiles');
+            
+            if (fileInput.files.length > 0) {
+                let combinedContent = '';
+                let fileList = '<strong>Uploaded files:</strong><br>';
+                
+                // Process each file
+                Array.from(fileInput.files).forEach((file, index) => {
+                    fileList += `${index + 1}. ${file.name}<br>`;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        combinedContent += `// === ${file.name} ===\n`;
+                        combinedContent += e.target.result;
+                        combinedContent += '\n\n';
+                        
+                        // Update textarea with combined content
+                        document.getElementById('contractFile').value = combinedContent;
+                    };
+                    
+                    reader.readAsText(file);
+                });
+                
+                uploadedFilesDiv.innerHTML = fileList;
+            } else {
+                uploadedFilesDiv.innerHTML = '';
+            }
+        }
+
+        // Form submission handler
         document.getElementById('deployForm').addEventListener('submit', async (event) => {
             event.preventDefault();
             const responseDiv = document.getElementById('response');
@@ -54,6 +115,12 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
 
             const moveToml = document.getElementById('moveToml').value;
             const contractFile = document.getElementById('contractFile').value;
+
+            // Validate that we have content
+            if (!moveToml.trim() || !contractFile.trim()) {
+                responseDiv.textContent = 'Error: Both Move.toml and contract content are required';
+                return;
+            }
 
             try {
                 const response = await fetch('http://localhost:3000/deploy', {
