@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aptos Contract Deployer</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        textarea { width: 100%; height: 150px; margin-bottom: 1em; }
+        pre { background-color: #f4f4f4; padding: 1em; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Aptos Contract Deployer</h1>
+    <form id="deployForm">
+        <div>
+            <label for="moveToml">Move.toml Content:</label>
+            <textarea id="moveToml" required>[package]
+name = "HelloBlockchain"
+version = "1.0.0"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
+            </textarea>
+        </div>
+        <div>
+            <label for="contractFile">Contract (.move) Content:</label>
+            <textarea id="contractFile" required>module {{ADDR}}::hello_blockchain {
+    use std::string;
+    use std::signer;
+
+    struct Message has key {
+        message: string::String,
+    }
+
+    public fun set_message(account: &signer, message: string::String) {
+        move_to(account, Message { message });
+    }
+}
+</textarea>
+        </div>
+        <button type="submit">Deploy</button>
+    </form>
+    <div id="result">
+        <h3>Result:</h3>
+        <pre id="response"></pre>
+    </div>
+
+    <script>
+        document.getElementById('deployForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = 'Deploying...';
+
+            const moveToml = document.getElementById('moveToml').value;
+            const contractFile = document.getElementById('contractFile').value;
+
+            try {
+                const response = await fetch('http://localhost:3000/deploy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ moveToml, contractFile })
+                });
+
+                const result = await response.json();
+                responseDiv.textContent = JSON.stringify(result, null, 2);
+
+            } catch (error) {
+                responseDiv.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

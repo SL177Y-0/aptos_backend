@@ -1,9 +1,0 @@
-[package]
-name = "hello_world"
-version = "1.0.0"
-
-[addresses]
-hello = "0x1"
-
-[dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
