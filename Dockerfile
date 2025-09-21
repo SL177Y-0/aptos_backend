@@ -1,55 +1,44 @@
-# Use the Debian 11 (Bullseye) slim image which has libssl1.1 required by the Aptos CLI
-FROM node:18-bullseye-slim
+# Use Node.js 18 Alpine for smaller image size
+FROM node:18-alpine
 
-# Install system dependencies, including git and the required libssl1.1
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Install system dependencies needed for Aptos CLI
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
     curl \
-    wget \
-    unzip \
-    ca-certificates \
-    libssl1.1 \
     git \
-    && rm -rf /var/lib/apt/lists/*
+    bash
 
-# Install a stable version of the Aptos CLI.
-RUN APTOS_CLI_VERSION="2.4.0" && \
-    wget -O aptos-cli.zip "https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v${APTOS_CLI_VERSION}/aptos-cli-${APTOS_CLI_VERSION}-Ubuntu-x86_64.zip" && \
-    unzip aptos-cli.zip && \
-    mv aptos /usr/local/bin/ && \
-    rm aptos-cli.zip
+# Install Aptos CLI
+RUN curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
 
-# Pre-fetch the Aptos framework dependencies during the build to avoid timeouts at runtime.
-# We download a source code archive which is much faster than cloning the git repo.
-RUN APTOS_CLI_VERSION="2.4.0" && \
-    wget -O aptos-framework.tar.gz "https://github.com/aptos-labs/aptos-core/archive/refs/tags/aptos-cli-v${APTOS_CLI_VERSION}.tar.gz" && \
-    mkdir -p /tmp/aptos-framework && \
-    tar -xzf aptos-framework.tar.gz -C /tmp/aptos-framework --strip-components=1 && \
-    rm aptos-framework.tar.gz
-ENV APTOS_FRAMEWORK_PATH=/tmp/aptos-framework/aptos-move/framework
+# Add Aptos CLI to PATH
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy application files
+COPY index.js index.html ./
 
 # Create a non-root user for security
-RUN useradd --create-home --shell /bin/bash appuser
-WORKDIR /home/appuser
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# Set environment variables for Aptos credentials.
-# These will be passed in during the build process on Render.
-ARG APTOS_PRIVATE_KEY
-ARG APTOS_ADDRESS
-ENV APTOS_PRIVATE_KEY=$APTOS_PRIVATE_KEY
-ENV APTOS_ADDRESS=$APTOS_ADDRESS
+# Change ownership of the app directory
+RUN chown -R nodejs:nodejs /app
+USER nodejs
 
-USER appuser
-
-# Copy application source and install dependencies
-COPY --chown=appuser:appuser package*.json ./
-RUN npm install --only=production
-
-COPY --chown=appuser:appuser . .
-
-# Expose the application port
+# Expose port
 EXPOSE 3000
 
-# Health check to ensure the service is running
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
