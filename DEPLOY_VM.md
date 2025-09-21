@@ -1,149 +1,138 @@
-# Deploying the Aptos Backend on a Google Cloud VM (Final Guide)
+# Deploying Your App on a Google Cloud Computer (Simple Guide)
 
-This comprehensive guide provides a detailed, step-by-step process for deploying the application on a Google Cloud Virtual Machine. This guide is based on the latest official documentation and best practices to ensure a successful deployment.
+This guide will walk you through putting your application on a virtual computer in Google Cloud. We'll use simple, step-by-step instructions.
 
-## Prerequisites
+Think of it like setting up a new computer just for your app to run on, accessible from anywhere in the world.
 
-*   A Google Cloud Platform (GCP) account with billing enabled.
-*   The `gcloud` command-line tool installed and configured on your local machine.
+## What You Need
 
-## Deployment Steps
+*   A Google Cloud account.
+*   The `gcloud` tool on your own computer (this is like a remote control for Google Cloud).
 
-### 1. Create a Google Cloud VM Instance
+## Let's Get Started!
 
-First, create a new VM instance in your GCP project.
+### Step 1: Create Your Virtual Computer on Google Cloud
 
-1.  **Go to the VM instances page:**
-    *   Open the [Google Cloud Console](https://console.cloud.google.com/).
-    *   Navigate to **Compute Engine** > **VM instances**.
-2.  **Create a new instance with the following settings:**
-    *   **Name:** `aptos-backend-vm`
-    *   **Region and Zone:** Choose a region and zone close to you for minimal latency.
-    *   **Machine configuration:** `e2-medium` is recommended for a balance of performance and cost.
-    *   **Boot disk:** Select **Ubuntu 22.04 LTS**. This is a long-term support release, ensuring stability.
-    *   **Firewall:** Check **Allow HTTP traffic**.
+First, we need to create the computer that will run your app.
+
+1.  **Go to the Google Cloud website** and open the **Compute Engine** section.
+2.  **Click "CREATE INSTANCE"** to start making your new virtual computer.
+3.  **Fill out the form:**
+    *   **Name:** Give it a simple name, like `my-app-server`.
+    *   **Region and Zone:** Pick a location that's close to you.
+    *   **Machine configuration:** `e2-medium` is a good starting point.
+    *   **Boot disk:** Choose **Ubuntu 22.04 LTS**. This is the operating system, like Windows or macOS.
+    *   **Firewall:** Check the box that says **Allow HTTP traffic**. This lets people access your app from the internet.
     *   Click **Create**.
 
-### 2. Configure Firewall Rules
+### Step 2: Open a Door for Your App
 
-Create a firewall rule to allow traffic on port 3000, which is required by the application.
+Your new virtual computer has a firewall that blocks most connections for security. We need to open a "door" (a port) so your app can be reached.
 
-1.  **Go to the Firewall rules page:**
-    *   Navigate to **VPC network** > **Firewall**.
-2.  **Create a new firewall rule with these settings:**
-    *   **Name:** `allow-port-3000`
-    *   **Network:** `default`
-    *   **Targets:** `All instances in the network`
-    *   **Source filter:** `IP ranges`
-    *   **Source IP ranges:** `0.0.0.0/0` (allows traffic from any IP address)
-    *   **Protocols and ports:** Select **TCP** and enter `3000`.
+1.  In the Google Cloud website, go to **VPC network** > **Firewall**.
+2.  **Click "CREATE FIREWALL RULE"** and fill in the details:
+    *   **Name:** `allow-app-port-3000`
+    *   **Source IP ranges:** Enter `0.0.0.0/0`. This means "allow anyone from the internet."
+    *   **Protocols and ports:** Check **TCP** and type `3000`. This is the specific door number your app uses.
     *   Click **Create**.
 
-### 3. Connect to Your VM
+### Step 3: Connect to Your New Virtual Computer
 
-Connect to your VM using the `gcloud` CLI.
+Now, let's log in to the virtual computer you just created.
 
-```bash
-gcloud compute ssh aptos-backend-vm --zone your-instance-zone
-```
+*   Open a terminal on your own computer and run this command:
+    ```bash
+    gcloud compute ssh aptos-backend-vm --zone your-instance-zone
+    ```
+    (Remember to replace `your-instance-zone` with the one you chose).
 
-Replace `your-instance-zone` with the zone you selected during VM creation.
+### Step 4: Get Your Computer Ready
 
-### 4. System Update and Git Installation
+We need to install a couple of things on your new virtual computer.
 
-Ensure your system is up-to-date and install Git.
+*   First, update the computer's software list and install Git (a tool for downloading code):
+    ```bash
+    sudo apt-get update -y
+    sudo apt-get upgrade -y
+    sudo apt-get install -y git
+    ```
 
-```bash
-sudo apt-get update -y
-sudo apt-get upgrade -y
-sudo apt-get install -y git
-```
+### Step 5: Install Docker (The App's "Magic Box")
 
-### 5. Install Docker and Docker Compose (Official Method)
+Docker is a tool that packages your app and all its needs into a "magic box" called a container. This makes it easy to run your app anywhere.
 
-Follow the official recommended steps to install Docker Engine.
+1.  **Add Docker's official software list:**
+    ```bash
+    sudo apt-get install -y ca-certificates curl
+    sudo install -m 0755 -d /etc/apt/keyrings
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-**1. Uninstall old versions (if any):**
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update
+    ```
+2.  **Install Docker:**
+    ```bash
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    ```
+3.  **Give yourself permission to use Docker:**
+    ```bash
+    sudo usermod -aG docker ${USER}
+    ```
 
-```bash
-for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove $pkg; done
-```
+**VERY IMPORTANT:** For the permission change to work, you need to log out and log back in.
 
-**2. Set up Docker's `apt` repository:**
+*   **Disconnect from the virtual computer:**
+    ```bash
+    exit
+    ```
+*   **Reconnect:**
+    ```bash
+    gcloud compute ssh aptos-backend-vm --zone your-instance-zone
+    ```
 
-```bash
-sudo apt-get install -y ca-certificates curl
-sudo install -m 0755 -d /etc/apt/keyrings
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-sudo chmod a+r /etc/apt/keyrings/docker.asc
+### Step 6: Download Your App's Code
 
-echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-```
-
-**3. Install Docker packages:**
-
-```bash
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-```
-
-**4. Add your user to the `docker` group:**
-
-```bash
-sudo usermod -aG docker ${USER}
-```
-
-**Important:** You must log out and log back in for this change to take effect.
-
-### 6. Clone the Repository
-
-Clone the application's source code.
+Now, let's download your app's code onto the virtual computer.
 
 ```bash
 git clone https://github.com/SL177Y-0/aptos_backend.git
 cd aptos_backend
 ```
 
-### 7. Build and Run the Application
+### Step 7: Start Your App!
 
-Build and run the application using the Docker Compose plugin.
+This one command tells Docker to build your app's "magic box" and start it.
 
 ```bash
 docker compose up --build -d
 ```
 
-### 8. Verify the Deployment
+### Step 8: Check if It's Working
 
-**1. Check the container status:**
+Let's make sure your app is running correctly.
 
-```bash
-docker compose ps
-```
-The `STATE` should be `Up`.
+1.  **Check the container status:**
+    ```bash
+    docker compose ps
+    ```
+    You should see your app running.
 
-**2. View the application logs:**
+2.  **Look at the app's log:**
+    ```bash
+    docker logs aptos_backend-aptos-deployer-1 -f
+    ```
+    You should see a message that the server has started.
 
-```bash
-docker logs aptos_backend-aptos-deployer-1 -f
-```
-Look for a message indicating the server has started successfully.
+3.  **Test it from your local computer:**
+    *   Find your virtual computer's **External IP** address on the Google Cloud website.
+    *   Open a new terminal on your *own* computer and run:
+        ```bash
+        curl http://YOUR_VM_EXTERNAL_IP:3000/health
+        ```
+        (Replace `YOUR_VM_EXTERNAL_IP` with the actual IP address).
 
-**3. Test the health check endpoint from within the VM:**
-
-```bash
-curl http://localhost:3000/health
-```
-This should return a success message.
-
-**4. Test from your local machine:**
-
-Find your VM's external IP address from the Google Cloud Console. Open a terminal on your local machine and run:
-
-```bash
-curl http://YOUR_VM_EXTERNAL_IP:3000/health
-```
-
-If this command is successful, your application is deployed and accessible from the internet.
+If you see a success message, congratulations! Your app is live on the internet.
