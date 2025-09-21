@@ -4,11 +4,13 @@
   "description": "A minimal backend to compile and deploy Aptos Move contracts.",
   "main": "index.js",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "ws": "^8.18.3"
   }
 }

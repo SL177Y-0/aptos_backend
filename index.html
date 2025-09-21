@@ -130,7 +130,21 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
                 });
 
                 const result = await response.json();
-                responseDiv.textContent = JSON.stringify(result, null, 2);
+                
+                // Format the response with clickable transaction link
+                let formattedResult = { ...result };
+                if (result.transactionLink) {
+                    formattedResult.transactionLink = result.transactionLink;
+                }
+                
+                responseDiv.innerHTML = `<pre>${JSON.stringify(formattedResult, null, 2)}</pre>`;
+                
+                // Add clickable link if transaction link exists
+                if (result.transactionLink) {
+                    const linkDiv = document.createElement('div');
+                    linkDiv.innerHTML = `<br><a href="${result.transactionLink}" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 View Transaction on Aptos Explorer</a>`;
+                    responseDiv.appendChild(linkDiv);
+                }
 
             } catch (error) {
                 responseDiv.textContent = `Error: ${error.message}`;

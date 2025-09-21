@@ -1,34 +1,16 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
-  aptos-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.move
-    volumes:
-      - .:/app
-      - aptos-cache:/root/.move
+  aptos-deployer:
+    build: .
+    ports:
+      - "3000:3000"
     environment:
-      - NODE_ENV=development
-    command: ["aptos", "move", "compile"]
-    
-  aptos-test:
-    build:
-      context: .
-      dockerfile: Dockerfile.move
-    volumes:
-      - .:/app
-    command: ["aptos", "move", "test"]
-    
-  aptos-deploy:
-    build:
-      context: .
-      dockerfile: Dockerfile.move
-    volumes:
-      - .:/app
-    environment:
-      - APTOS_NETWORK=testnet
-    command: ["aptos", "move", "publish", "--assume-yes"]
-
-volumes:
-  aptos-cache:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
