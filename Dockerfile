@@ -11,9 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install a stable version of the Aptos CLI by downloading the binary directly.
-# This is the most reliable method and avoids API rate-limiting or script failures.
-RUN APTOS_CLI_VERSION="2.4.0" && \
+# Install the latest stable version of the Aptos CLI
+RUN APTOS_CLI_VERSION="4.2.5" && \
     wget -O aptos-cli.zip "https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v${APTOS_CLI_VERSION}/aptos-cli-${APTOS_CLI_VERSION}-Ubuntu-x86_64.zip" && \
     unzip aptos-cli.zip && \
     mv aptos /usr/local/bin/ && \

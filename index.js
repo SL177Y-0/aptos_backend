@@ -61,8 +61,12 @@ function fixMoveToml(moveTomlContent) {
         if (!tomlContent.includes("[dependencies]")) {
             tomlContent += "\n\n[dependencies]";
         }
-        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"aptos-node-v1.34.2\" }";
+        // Use a stable framework version compatible with the CLI
+        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"aptos-node-v1.18.0\" }";
     }
+    
+    // Replace main branch with stable version
+    tomlContent = tomlContent.replace(/rev = "main"/g, 'rev = "aptos-node-v1.18.0"');
     
     // Replace {{ADDR}} with actual account address
     tomlContent = tomlContent.replace(/\{\{ADDR\}\}/g, accountAddress);
