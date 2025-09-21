@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     ca-certificates \
     libssl1.1 \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install a stable version of the Aptos CLI by downloading the binary directly.
