@@ -1,44 +1,38 @@
-# Use Node.js 18 Alpine for smaller image size
-FROM node:18-alpine
+# Use the Debian 11 (Bullseye) slim image which has libssl1.1 required by the Aptos CLI
+FROM node:18-bullseye-slim
 
-# Install system dependencies needed for Aptos CLI
-RUN apk add --no-cache \
-    python3 \
-    py3-pip \
+# Install system dependencies, including the required libssl1.1
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    git \
-    bash
+    wget \
+    unzip \
+    ca-certificates \
+    libssl1.1 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Aptos CLI
-RUN curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
-
-# Add Aptos CLI to PATH
-ENV PATH="/root/.local/bin:${PATH}"
-
-# Create app directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy application files
-COPY index.js index.html ./
+# Install a stable version of the Aptos CLI by downloading the binary directly.
+# This is the most reliable method and avoids API rate-limiting or script failures.
+RUN APTOS_CLI_VERSION="2.4.0" && \
+    wget -O aptos-cli.zip "https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v${APTOS_CLI_VERSION}/aptos-cli-${APTOS_CLI_VERSION}-Ubuntu-x86_64.zip" && \
+    unzip aptos-cli.zip && \
+    mv aptos /usr/local/bin/ && \
+    rm aptos-cli.zip
 
 # Create a non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN useradd --create-home --shell /bin/bash appuser
+WORKDIR /home/appuser
+USER appuser
 
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Copy application source and install dependencies
+COPY --chown=appuser:appuser package*.json ./
+RUN npm install --only=production
 
-# Expose port
+COPY --chown=appuser:appuser . .
+
+# Expose the application port
 EXPOSE 3000
 
-# Health check
+# Health check to ensure the service is running
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 

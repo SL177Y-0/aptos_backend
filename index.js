@@ -4,8 +4,10 @@ import fs from "fs";
 import { execSync } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(bodyParser.json({ limit: "10mb" }));
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,8 +17,46 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
+function getAccountAddress() {
+    let accountAddress;
+    
+    try {
+        const profileInfo = execSync("aptos account list --profile default", { 
+            stdio: "pipe", 
+            encoding: "utf8" 
+        }).toString();
+        
+        const profileData = JSON.parse(profileInfo);
+        
+        if (profileData.Result && profileData.Result.length > 0) {
+            const accountObject = profileData.Result[0];
+            const accountType = Object.keys(accountObject)[0];
+            const accountDetails = accountObject[accountType];
+            
+            if (accountDetails && accountDetails.coin_register_events && accountDetails.coin_register_events.guid && accountDetails.coin_register_events.guid.id && accountDetails.coin_register_events.guid.id.addr) {
+                accountAddress = accountDetails.coin_register_events.guid.id.addr;
+            } else {
+                throw new Error("Could not find account address in the expected location within the JSON output.");
+            }
+        } else {
+            throw new Error("Could not find 'Result' array in the output of 'aptos account list --profile default'.");
+        }
+    } catch (e) {
+        console.error("Failed to get account address for 'default' profile.", e);
+        throw new Error("Could not determine account address. Please ensure the 'default' profile is configured correctly by running 'aptos init'.");
+    }
+    
+    if (!accountAddress) {
+        throw new Error("Failed to extract account address, the value is empty.");
+    }
+
+    console.log(`Using account address: ${accountAddress}`);
+    return accountAddress;
+}
+
 function fixMoveToml(moveTomlContent) {
     let tomlContent = moveTomlContent;
+    const accountAddress = getAccountAddress();
     
     if (!tomlContent.includes("[package]")) {
         tomlContent = "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"\n\n" + tomlContent;
@@ -29,43 +69,17 @@ function fixMoveToml(moveTomlContent) {
         tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"main\" }";
     }
     
+    // Replace {{ADDR}} with actual account address
+    tomlContent = tomlContent.replace(/\{\{ADDR\}\}/g, accountAddress);
+    
     return tomlContent;
 }
 
 function fixMoveContract(contractContent) {
-    // Get the actual account address - try multiple methods
-    let accountAddress = "0x1";
-    
-    try {
-        // Method 1: Try aptos account list
-        const accountInfo = execSync("aptos account list", { 
-            stdio: "pipe", 
-            encoding: "utf8" 
-        }).toString();
-        
-        const match = accountInfo.match(/"account": "([^"]+)"/);
-        if (match) {
-            accountAddress = match[1];
-        } else {
-            // Method 2: Try aptos account list with profile
-            const profileInfo = execSync("aptos account list --profile default", { 
-                stdio: "pipe", 
-                encoding: "utf8" 
-            }).toString();
-            
-            const profileMatch = profileInfo.match(/"account": "([^"]+)"/);
-            if (profileMatch) {
-                accountAddress = profileMatch[1];
-            }
-        }
-    } catch (e) {
-        console.log("Could not get account address, using 0x1");
-    }
-    
-    console.log(`Using account address: ${accountAddress}`);
+    const accountAddress = getAccountAddress();
     
     // Replace {{ADDR}} with actual account address
-    let contract = contractContent.replace(/\{\{ADDR\}\}/g, accountAddress);
+    const contract = contractContent.replace(/\{\{ADDR\}\}/g, accountAddress);
     
     return contract;
 }
@@ -154,7 +168,10 @@ app.get("/health", (req, res) => {
 try {
     const version = execSync("aptos --version").toString().trim();
     console.log(`Aptos CLI found: ${version}`);
-    app.listen(3000, () => console.log("Backend running at http://localhost:3000"));
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Backend running at http://0.0.0.0:${PORT}`);
+    });
 } catch (e) {
     console.error("----------------------------------------------------------------");
     console.error("ERROR: Aptos CLI not found.");
