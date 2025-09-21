@@ -61,7 +61,7 @@ function fixMoveToml(moveTomlContent) {
         if (!tomlContent.includes("[dependencies]")) {
             tomlContent += "\n\n[dependencies]";
         }
-        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"testnet\" }";
+        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"aptos-cli-v2.4.0\" }";
     }
     
     // Replace {{ADDR}} with actual account address
