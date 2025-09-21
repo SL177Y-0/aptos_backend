@@ -21,6 +21,14 @@ RUN APTOS_CLI_VERSION="2.4.0" && \
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /home/appuser
+
+# Set environment variables for Aptos credentials.
+# These will be passed in during the build process on Render.
+ARG APTOS_PRIVATE_KEY
+ARG APTOS_ADDRESS
+ENV APTOS_PRIVATE_KEY=$APTOS_PRIVATE_KEY
+ENV APTOS_ADDRESS=$APTOS_ADDRESS
+
 USER appuser
 
 # Copy application source and install dependencies

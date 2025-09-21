@@ -18,45 +18,16 @@ app.get("/", (req, res) => {
 });
 
 function getAccountAddress() {
-    let accountAddress;
-    
-    try {
-        const profileInfo = execSync("aptos account list --profile default", { 
-            stdio: "pipe", 
-            encoding: "utf8" 
-        }).toString();
-        
-        const profileData = JSON.parse(profileInfo);
-        
-        if (profileData.Result && profileData.Result.length > 0) {
-            const accountObject = profileData.Result[0];
-            const accountType = Object.keys(accountObject)[0];
-            const accountDetails = accountObject[accountType];
-            
-            if (accountDetails && accountDetails.coin_register_events && accountDetails.coin_register_events.guid && accountDetails.coin_register_events.guid.id && accountDetails.coin_register_events.guid.id.addr) {
-                accountAddress = accountDetails.coin_register_events.guid.id.addr;
-            } else {
-                throw new Error("Could not find account address in the expected location within the JSON output.");
-            }
-        } else {
-            throw new Error("Could not find 'Result' array in the output of 'aptos account list --profile default'.");
-        }
-    } catch (e) {
-        console.error("Failed to get account address for 'default' profile.", e);
-        throw new Error("Could not determine account address. Please ensure the 'default' profile is configured correctly by running 'aptos init'.");
-    }
-    
+    const accountAddress = process.env.APTOS_ADDRESS;
     if (!accountAddress) {
-        throw new Error("Failed to extract account address, the value is empty.");
+        throw new Error("APTOS_ADDRESS environment variable is not set.");
     }
-
     console.log(`Using account address: ${accountAddress}`);
     return accountAddress;
 }
 
-function fixMoveToml(moveTomlContent) {
+function fixMoveToml(moveTomlContent, accountAddress) {
     let tomlContent = moveTomlContent;
-    const accountAddress = getAccountAddress();
     
     if (!tomlContent.includes("[package]")) {
         tomlContent = "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"\n\n" + tomlContent;
@@ -75,12 +46,9 @@ function fixMoveToml(moveTomlContent) {
     return tomlContent;
 }
 
-function fixMoveContract(contractContent) {
-    const accountAddress = getAccountAddress();
-    
+function fixMoveContract(contractContent, accountAddress) {
     // Replace {{ADDR}} with actual account address
     const contract = contractContent.replace(/\{\{ADDR\}\}/g, accountAddress);
-    
     return contract;
 }
 
@@ -92,8 +60,14 @@ app.post("/deploy", async (req, res) => {
       return res.status(400).json({ error: "Both Move.toml and contract content are required" });
     }
 
-    const fixedMoveToml = fixMoveToml(moveToml);
-    const fixedContract = fixMoveContract(contractFile);
+    const privateKey = process.env.APTOS_PRIVATE_KEY;
+    if (!privateKey) {
+        return res.status(500).json({ error: "Deployment failed", details: "APTOS_PRIVATE_KEY environment variable is not set on the server." });
+    }
+
+    const accountAddress = getAccountAddress();
+    const fixedMoveToml = fixMoveToml(moveToml, accountAddress);
+    const fixedContract = fixMoveContract(contractFile, accountAddress);
     const projectDir = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const sourcesDir = path.join(projectDir, "sources");
     
@@ -114,7 +88,7 @@ app.post("/deploy", async (req, res) => {
 
       console.log("Publishing contract...");
       const output = execSync(
-        `aptos move publish --package-dir ${projectDir} --assume-yes --profile default`,
+        `aptos move publish --package-dir ${projectDir} --assume-yes --private-key ${privateKey}`,
         { 
           stdio: "pipe", 
           timeout: 60000,
