@@ -33,8 +33,9 @@ RUN npm install --only=production
 COPY index.js index.html ./
 
 # Create a non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# Use Debian-compatible commands for addgroup/adduser
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 --ingroup nodejs --no-create-home nodejs
 
 # Change ownership of the app directory
 RUN chown -R nodejs:nodejs /app
