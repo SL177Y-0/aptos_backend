@@ -33,11 +33,17 @@ function fixMoveToml(moveTomlContent, accountAddress) {
         tomlContent = "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"\n\n" + tomlContent;
     }
     
+    const frameworkPath = process.env.APTOS_FRAMEWORK_PATH;
+    if (!frameworkPath) {
+        throw new Error("APTOS_FRAMEWORK_PATH environment variable is not set.");
+    }
+
+    // Use the local, pre-fetched framework dependency to avoid network timeouts.
     if (!tomlContent.includes("AptosFramework")) {
         if (!tomlContent.includes("[dependencies]")) {
             tomlContent += "\n\n[dependencies]";
         }
-        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"main\" }";
+        tomlContent += `\nAptosFramework = { local = "${frameworkPath}" }`;
     }
     
     // Replace {{ADDR}} with actual account address

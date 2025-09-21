@@ -11,13 +11,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install a stable version of the Aptos CLI by downloading the binary directly.
-# This is the most reliable method and avoids API rate-limiting or script failures.
+# Install a stable version of the Aptos CLI.
 RUN APTOS_CLI_VERSION="2.4.0" && \
     wget -O aptos-cli.zip "https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v${APTOS_CLI_VERSION}/aptos-cli-${APTOS_CLI_VERSION}-Ubuntu-x86_64.zip" && \
     unzip aptos-cli.zip && \
     mv aptos /usr/local/bin/ && \
     rm aptos-cli.zip
+
+# Pre-fetch the Aptos framework dependencies during the build to avoid timeouts at runtime.
+# We only need a shallow clone to make it faster.
+RUN git clone --depth 1 https://github.com/aptos-labs/aptos-core.git /tmp/aptos-core
+ENV APTOS_FRAMEWORK_PATH=/tmp/aptos-core/aptos-move/framework
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser
