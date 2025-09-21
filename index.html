@@ -9,10 +9,11 @@
         textarea { width: 100%; height: 150px; margin-bottom: 1em; border: 1px solid #ddd; padding: 8px; border-radius: 4px; }
         input[type="file"] { margin-bottom: 10px; padding: 5px; }
         small { color: #666; display: block; margin-bottom: 8px; }
-        pre { background-color: #f4f4f4; padding: 1em; border-radius: 5px; }
+        pre { background-color: #f4f4f4; padding: 1em; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; }
         #uploadedFiles { background-color: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef; }
         button { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #a0c7ff; cursor: not-allowed; }
         .form-section { margin-bottom: 2em; padding: 1em; border: 1px solid #e9ecef; border-radius: 5px; }
     </style>
 </head>
@@ -27,6 +28,9 @@
 name = "HelloBlockchain"
 version = "1.0.0"
 
+[addresses]
+counter_addr = "{{ADDR}}"
+
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
             </textarea>
@@ -35,22 +39,21 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
             <label for="contractFileInput">Contract File(s):</label>
             <input type="file" id="contractFileInput" accept=".move" multiple onchange="handleContractFileUpload()">
             <small>Upload one or more .move files, or paste content manually below:</small>
-            <textarea id="contractFile" placeholder="Paste your Move contract content here or upload files above..." required>module {{ADDR}}::hello_blockchain {
-    use std::string;
+            <textarea id="contractFile" placeholder="Paste your Move contract content here or upload files above..." required>module counter_addr::CounterV2 {
     use std::signer;
 
-    struct Message has key {
-        message: string::String,
+    struct Counter has key {
+        value: u64,
     }
 
-    public fun set_message(account: &signer, message: string::String) {
-        move_to(account, Message { message });
+    public entry fun init(account: &signer) {
+        move_to(account, Counter { value: 0 });
     }
 }
 </textarea>
             <div id="uploadedFiles" style="margin-top: 10px;"></div>
         </div>
-        <button type="submit">Deploy</button>
+        <button type="submit" id="deployButton">Deploy</button>
     </form>
     <div id="result">
         <h3>Result:</h3>
@@ -58,67 +61,94 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
     </div>
 
     <script>
-        // Handle single file upload (for Move.toml)
         function handleFileUpload(fileInputId, textareaId) {
             const fileInput = document.getElementById(fileInputId);
             const textarea = document.getElementById(textareaId);
-            
             if (fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    textarea.value = e.target.result;
-                };
-                
+                reader.onload = (e) => { textarea.value = e.target.result; };
                 reader.readAsText(file);
             }
         }
 
-        // Handle multiple contract file uploads
         function handleContractFileUpload() {
             const fileInput = document.getElementById('contractFileInput');
             const uploadedFilesDiv = document.getElementById('uploadedFiles');
+            const contractFileTextarea = document.getElementById('contractFile');
             
             if (fileInput.files.length > 0) {
                 let combinedContent = '';
-                let fileList = '<strong>Uploaded files:</strong><br>';
-                
-                // Process each file
-                Array.from(fileInput.files).forEach((file, index) => {
-                    fileList += `${index + 1}. ${file.name}<br>`;
-                    
+                let fileListHTML = '<strong>Uploaded files:</strong><br>';
+                const files = Array.from(fileInput.files);
+                let filesRead = 0;
+
+                files.forEach((file, index) => {
+                    fileListHTML += `${index + 1}. ${file.name}<br>`;
                     const reader = new FileReader();
-                    reader.onload = function(e) {
+                    reader.onload = (e) => {
                         combinedContent += `// === ${file.name} ===\n`;
                         combinedContent += e.target.result;
                         combinedContent += '\n\n';
-                        
-                        // Update textarea with combined content
-                        document.getElementById('contractFile').value = combinedContent;
+                        filesRead++;
+                        if (filesRead === files.length) {
+                            contractFileTextarea.value = combinedContent;
+                        }
                     };
-                    
                     reader.readAsText(file);
                 });
-                
-                uploadedFilesDiv.innerHTML = fileList;
+                uploadedFilesDiv.innerHTML = fileListHTML;
             } else {
                 uploadedFilesDiv.innerHTML = '';
             }
         }
 
-        // Form submission handler
-        document.getElementById('deployForm').addEventListener('submit', async (event) => {
+        const deployForm = document.getElementById('deployForm');
+        const deployButton = document.getElementById('deployButton');
+        const responseDiv = document.getElementById('response');
+
+        async function pollJobStatus(jobId) {
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/status/${jobId}`);
+                    const data = await res.json();
+
+                    responseDiv.textContent = `Status: ${data.status}...`;
+
+                    if (data.status === 'success' || data.status === 'error') {
+                        clearInterval(interval);
+                        deployButton.disabled = false;
+                        
+                        let finalResult = data.status === 'success' ? data.result : data;
+                        
+                        responseDiv.innerHTML = `<pre>${JSON.stringify(finalResult, null, 2)}</pre>`;
+                        
+                        if (finalResult.transactionLink) {
+                            const linkDiv = document.createElement('div');
+                            linkDiv.innerHTML = `<br><a href="${finalResult.transactionLink}" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 View Transaction on Aptos Explorer</a>`;
+                            responseDiv.appendChild(linkDiv);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                    responseDiv.textContent = `Error polling for status: ${error.message}`;
+                    clearInterval(interval);
+                    deployButton.disabled = false;
+                }
+            }, 2000);
+        }
+
+        deployForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const responseDiv = document.getElementById('response');
-            responseDiv.textContent = 'Deploying...';
+            deployButton.disabled = true;
+            responseDiv.textContent = 'Submitting deployment job...';
 
             const moveToml = document.getElementById('moveToml').value;
             const contractFile = document.getElementById('contractFile').value;
 
-            // Validate that we have content
             if (!moveToml.trim() || !contractFile.trim()) {
                 responseDiv.textContent = 'Error: Both Move.toml and contract content are required';
+                deployButton.disabled = false;
                 return;
             }
 
@@ -129,25 +159,18 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
                     body: JSON.stringify({ moveToml, contractFile })
                 });
 
+                if (response.status !== 202) {
+                    const errorResult = await response.json();
+                    throw new Error(errorResult.details || 'Failed to start deployment job.');
+                }
+
                 const result = await response.json();
-                
-                // Format the response with clickable transaction link
-                let formattedResult = { ...result };
-                if (result.transactionLink) {
-                    formattedResult.transactionLink = result.transactionLink;
-                }
-                
-                responseDiv.innerHTML = `<pre>${JSON.stringify(formattedResult, null, 2)}</pre>`;
-                
-                // Add clickable link if transaction link exists
-                if (result.transactionLink) {
-                    const linkDiv = document.createElement('div');
-                    linkDiv.innerHTML = `<br><a href="${result.transactionLink}" target="_blank" style="color: #007bff; text-decoration: none; font-weight: bold;">🔗 View Transaction on Aptos Explorer</a>`;
-                    responseDiv.appendChild(linkDiv);
-                }
+                responseDiv.textContent = 'Deployment job started. Waiting for completion...';
+                pollJobStatus(result.jobId);
 
             } catch (error) {
                 responseDiv.textContent = `Error: ${error.message}`;
+                deployButton.disabled = false;
             }
         });
     </script>

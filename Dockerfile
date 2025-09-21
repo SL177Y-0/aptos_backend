@@ -19,9 +19,13 @@ RUN APTOS_CLI_VERSION="2.4.0" && \
     rm aptos-cli.zip
 
 # Pre-fetch the Aptos framework dependencies during the build to avoid timeouts at runtime.
-# We only need a shallow clone to make it faster.
-RUN git clone --depth 1 https://github.com/aptos-labs/aptos-core.git /tmp/aptos-core
-ENV APTOS_FRAMEWORK_PATH=/tmp/aptos-core/aptos-move/framework
+# We download a source code archive which is much faster than cloning the git repo.
+RUN APTOS_CLI_VERSION="2.4.0" && \
+    wget -O aptos-framework.tar.gz "https://github.com/aptos-labs/aptos-core/archive/refs/tags/aptos-cli-v${APTOS_CLI_VERSION}.tar.gz" && \
+    mkdir -p /tmp/aptos-framework && \
+    tar -xzf aptos-framework.tar.gz -C /tmp/aptos-framework --strip-components=1 && \
+    rm aptos-framework.tar.gz
+ENV APTOS_FRAMEWORK_PATH=/tmp/aptos-framework/aptos-move/framework
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser

@@ -1,10 +1,14 @@
 ﻿import express from "express";
 import bodyParser from "body-parser";
 import fs from "fs";
-import { execSync } from "child_process";
+import { exec, execSync } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import util from "util";
+
+// Promisify the exec function for modern async/await usage
+const execAsync = util.promisify(exec);
 
 const app = express();
 app.use(cors());
@@ -12,6 +16,9 @@ app.use(bodyParser.json({ limit: "10mb" }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// In-memory store for job statuses
+const jobs = {};
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
@@ -22,125 +29,121 @@ function getAccountAddress() {
     if (!accountAddress) {
         throw new Error("APTOS_ADDRESS environment variable is not set.");
     }
-    console.log(`Using account address: ${accountAddress}`);
     return accountAddress;
 }
 
 function fixMoveToml(moveTomlContent, accountAddress) {
     let tomlContent = moveTomlContent;
-    
-    if (!tomlContent.includes("[package]")) {
-        tomlContent = "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"\n\n" + tomlContent;
-    }
-    
     const frameworkPath = process.env.APTOS_FRAMEWORK_PATH;
     if (!frameworkPath) {
         throw new Error("APTOS_FRAMEWORK_PATH environment variable is not set.");
     }
 
-    // Use the local, pre-fetched framework dependency to avoid network timeouts.
+    if (!tomlContent.includes("[package]")) {
+        tomlContent = "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"\n\n" + tomlContent;
+    }
     if (!tomlContent.includes("AptosFramework")) {
         if (!tomlContent.includes("[dependencies]")) {
             tomlContent += "\n\n[dependencies]";
         }
         tomlContent += `\nAptosFramework = { local = "${frameworkPath}" }`;
     }
-    
-    // Replace {{ADDR}} with actual account address
     tomlContent = tomlContent.replace(/\{\{ADDR\}\}/g, accountAddress);
-    
     return tomlContent;
 }
 
 function fixMoveContract(contractContent, accountAddress) {
-    // Replace {{ADDR}} with actual account address
-    const contract = contractContent.replace(/\{\{ADDR\}\}/g, accountAddress);
-    return contract;
+    return contractContent.replace(/\{\{ADDR\}\}/g, accountAddress);
+}
+
+async function runDeployment(jobId, body) {
+    const projectDir = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    try {
+        const { moveToml, contractFile } = body;
+        const privateKey = process.env.APTOS_PRIVATE_KEY;
+        if (!privateKey) {
+            throw new Error("APTOS_PRIVATE_KEY environment variable is not set on the server.");
+        }
+
+        const accountAddress = getAccountAddress();
+        const fixedMoveToml = fixMoveToml(moveToml, accountAddress);
+        const fixedContract = fixMoveContract(contractFile, accountAddress);
+        const sourcesDir = path.join(projectDir, "sources");
+
+        await fs.promises.mkdir(sourcesDir, { recursive: true });
+        await fs.promises.writeFile(path.join(projectDir, "Move.toml"), fixedMoveToml);
+        await fs.promises.writeFile(path.join(sourcesDir, "contract.move"), fixedContract);
+
+        jobs[jobId].status = "publishing";
+        console.log(`[Job ${jobId}] Compiling and publishing contract...`);
+        
+        // Use the non-blocking execAsync and provide a generous timeout
+        const { stdout, stderr } = await execAsync(
+            `aptos move publish --package-dir ${projectDir} --assume-yes --private-key ${privateKey}`,
+            { timeout: 900000 } // 15 minutes timeout, should be more than enough
+        );
+
+        if (stderr) {
+            console.error(`[Job ${jobId}] Deployment stderr:`, stderr);
+        }
+
+        const output = stdout;
+        const txHashMatch = output.match(/"transaction_hash": "([^"]+)"/);
+        const txHash = txHashMatch ? txHashMatch[1] : "Not found";
+        const accountAddressMatch = output.match(/"sender": "([^"]+)"/);
+        const moduleAddress = accountAddressMatch ? accountAddressMatch[1] : "Not found";
+        const transactionLink = txHash !== "Not found" 
+            ? `https://explorer.aptoslabs.com/txn/${txHash}?network=testnet`
+            : null;
+
+        jobs[jobId] = {
+            status: "success",
+            result: { success: true, txHash, moduleAddress, transactionLink, output: output.substring(0, 2000) }
+        };
+
+    } catch (err) {
+        console.error(`[Job ${jobId}] Deployment error:`, err);
+        jobs[jobId] = {
+            status: "error",
+            error: "Deployment failed",
+            details: err.stderr || err.stdout || err.message
+        };
+    } finally {
+        try {
+            await fs.promises.rm(projectDir, { recursive: true, force: true });
+        } catch (cleanupErr) {
+            console.warn(`[Job ${jobId}] Failed to cleanup ${projectDir}:`, cleanupErr.message);
+        }
+    }
 }
 
 app.post("/deploy", async (req, res) => {
-  try {
-    const { moveToml, contractFile } = req.body;
-
-    if (!moveToml || !contractFile) {
-      return res.status(400).json({ error: "Both Move.toml and contract content are required" });
-    }
-
-    const privateKey = process.env.APTOS_PRIVATE_KEY;
-    if (!privateKey) {
-        return res.status(500).json({ error: "Deployment failed", details: "APTOS_PRIVATE_KEY environment variable is not set on the server." });
-    }
-
-    const accountAddress = getAccountAddress();
-    const fixedMoveToml = fixMoveToml(moveToml, accountAddress);
-    const fixedContract = fixMoveContract(contractFile, accountAddress);
-    const projectDir = `project_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const sourcesDir = path.join(projectDir, "sources");
+    const jobId = `job_${Date.now()}`;
+    jobs[jobId] = { status: "pending", message: "Deployment has been queued." };
     
-    try {
-      fs.mkdirSync(sourcesDir, { recursive: true });
-      fs.writeFileSync(path.join(projectDir, "Move.toml"), fixedMoveToml);
-      fs.writeFileSync(path.join(sourcesDir, "contract.move"), fixedContract);
+    res.status(202).json({ jobId });
 
-      console.log(`Compiling project in ${projectDir}...`);
-      
-      const compileOutput = execSync(`aptos move compile --package-dir ${projectDir}`, { 
-        stdio: "pipe",
-        encoding: "utf8"
-      }).toString();
-      
-      console.log("Compilation successful");
+    // Run the deployment in the background without awaiting it
+    runDeployment(jobId, req.body);
+});
 
-      console.log("Publishing contract...");
-      const output = execSync(
-        `aptos move publish --package-dir ${projectDir} --assume-yes --private-key ${privateKey}`,
-        { 
-          stdio: "pipe", 
-          encoding: "utf8"
-        }
-      ).toString();
+app.get("/status/:jobId", (req, res) => {
+    const { jobId } = req.params;
+    const job = jobs[jobId];
 
-      const txHashMatch = output.match(/transaction_hash": "([^"]+)"/);
-      const txHash = txHashMatch ? txHashMatch[1] : "Not found";
-      
-      const accountAddressMatch = output.match(/"sender": "([^"]+)"/);
-      const moduleAddress = accountAddressMatch ? accountAddressMatch[1] : "Not found";
-
-      const transactionLink = txHash !== "Not found" 
-        ? `https://explorer.aptoslabs.com/txn/${txHash}?network=testnet`
-        : null;
-
-      res.json({ 
-        success: true,
-        txHash, 
-        moduleAddress,
-        transactionLink,
-        output: output.substring(0, 1000)
-      });
-
-    } finally {
-      try {
-        fs.rmSync(projectDir, { recursive: true, force: true });
-      } catch (cleanupErr) {
-        console.warn(`Failed to cleanup ${projectDir}:`, cleanupErr.message);
-      }
+    if (!job) {
+        return res.status(404).json({ error: "Job not found." });
     }
-
-  } catch (err) {
-    console.error("Deployment error:", err);
-    res.status(500).json({ 
-      error: "Deployment failed",
-      details: err.message.substring(0, 500)
-    });
-  }
+    res.json(job);
 });
 
 app.get("/health", (req, res) => {
-  res.json({ 
-    status: "ok", 
-    timestamp: new Date().toISOString(),
-    aptosVersion: execSync("aptos --version").toString().trim()
-  });
+  try {
+    const version = execSync("aptos --version").toString().trim();
+    res.json({ status: "ok", timestamp: new Date().toISOString(), aptosVersion: version });
+  } catch (e) {
+    res.status(500).json({ status: "error", message: "Aptos CLI not found or not working." });
+  }
 });
 
 try {
