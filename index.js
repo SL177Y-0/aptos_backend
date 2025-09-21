@@ -101,7 +101,7 @@ app.post("/deploy", async (req, res) => {
       
       const compileOutput = execSync(`aptos move compile --package-dir ${projectDir}`, { 
         stdio: "pipe",
-        timeout: 60000,
+        timeout: 300000,
         encoding: "utf8"
       }).toString();
       
@@ -112,7 +112,7 @@ app.post("/deploy", async (req, res) => {
         `aptos move publish --package-dir ${projectDir} --assume-yes --profile default`,
         { 
           stdio: "pipe", 
-          timeout: 60000,
+          timeout: 300000,
           encoding: "utf8"
         }
       ).toString();

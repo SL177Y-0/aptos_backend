@@ -145,6 +145,24 @@ Let's make sure your app is running correctly.
 
 If you see a success message, congratulations! Your app is live on the internet.
 
+### Optional: Upgrading Your VM for Faster Performance
+
+Your current `e2-medium` VM is great for running the app, but it can be slow for compiling. For a much faster experience (similar to your local computer), you can upgrade it.
+
+**Recommended Machine Type:** `n2d-standard-8` (8 vCPUs, 32 GB RAM)
+
+**How to Upgrade:**
+
+1.  **Go to the Google Cloud Console** > **Compute Engine** > **VM instances**.
+2.  **Stop your VM:** Click the three dots next to your `aptos-backend-vm` and select **Stop**. Wait for it to fully stop.
+3.  **Edit your VM:** Click on the name of your VM (`aptos-backend-vm`) to go to its details page.
+4.  Click **Edit** at the top of the page.
+5.  In the **Machine configuration** section, select the **N2D** series and then choose the **n2d-standard-8** machine type.
+6.  Scroll to the bottom and click **Save**.
+7.  **Start your VM:** Go back to the VM instances list, click the three dots, and select **Start**.
+
+After upgrading, your deployments and compilations will be significantly faster.
+
 ### Updating Your Application
 
 If you make changes to the code, you'll need to rebuild your Docker container to see them.
