@@ -6,8 +6,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "start": "node index.js",
-    "vercel-build": "wget -O aptos-cli.zip https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v1.0.0/aptos-cli-1.0.0-Ubuntu-x86_64.zip && unzip aptos-cli.zip && mv aptos /usr/local/bin/ && rm aptos-cli.zip"
+    "start": "node index.js"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
