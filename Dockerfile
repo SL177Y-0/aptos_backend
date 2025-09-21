@@ -1,13 +1,14 @@
 # Use the Debian 11 (Bullseye) slim image which has libssl1.1 required by the Aptos CLI
 FROM node:18-bullseye-slim
 
-# Install system dependencies, including the required libssl1.1
+# Install system dependencies, including git and the required libssl1.1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     unzip \
     ca-certificates \
     libssl1.1 \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install a stable version of the Aptos CLI by downloading the binary directly.
