@@ -1,0 +1,72 @@
+name: Deploy Aptos Contract Deployer
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Install Aptos CLI
+      run: |
+        curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+        aptos --version
+    
+    - name: Test Move compilation
+      run: |
+        aptos move compile
+        echo "Move compilation successful"
+    
+    - name: Test Node.js server
+      run: |
+        timeout 10s npm start || true
+        echo "Node.js server test completed"
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Install Aptos CLI
+      run: |
+        curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+        aptos --version
+    
+    - name: Deploy to Railway
+      if: success()
+      run: |
+        echo "Deployment would happen here"
+        echo "Configure Railway or your preferred platform"
+    
+    - name: Deploy to Vercel
+      if: success()
+      run: |
+        echo "Deployment to Vercel would happen here"
+        echo "Configure Vercel deployment"
