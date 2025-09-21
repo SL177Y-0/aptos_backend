@@ -22,16 +22,17 @@ RUN APTOS_CLI_VERSION="4.2.5" && \
 RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /home/appuser
 
-# Initialize a default Aptos profile
-RUN aptos init --network testnet --assume-yes
-
-USER appuser
-
-# Copy application source and install dependencies
+# Copy application source and install dependencies first
 COPY --chown=appuser:appuser package*.json ./
 RUN npm install --only=production
 
 COPY --chown=appuser:appuser . .
+
+# Switch to appuser BEFORE initializing Aptos
+USER appuser
+
+# Initialize a default Aptos profile as the appuser
+RUN aptos init --network testnet --assume-yes
 
 # Expose the application port
 EXPOSE 3000
