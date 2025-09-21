@@ -1,19 +1,21 @@
 # Use Node.js 18 Alpine for smaller image size
 FROM node:18-alpine
 
-# Install system dependencies needed for Aptos CLI
+# Install system dependencies
 RUN apk add --no-cache \
-    python3 \
-    py3-pip \
     curl \
-    git \
-    bash
+    wget \
+    unzip
 
 # Install Aptos CLI
-RUN curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+# We download the binary directly to avoid GitHub API rate limiting issues with the install script.
+RUN APLTOS_CLI_VERSION="2.4.0" && \
+    wget -O aptos-cli.zip "https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v${APLTOS_CLI_VERSION}/aptos-cli-${APLTOS_CLI_VERSION}-Ubuntu-x86_64.zip" && \
+    unzip aptos-cli.zip && \
+    mv aptos /usr/local/bin/ && \
+    rm aptos-cli.zip
 
-# Add Aptos CLI to PATH
-ENV PATH="/root/.local/bin:${PATH}"
+# The aptos binary is now in /usr/local/bin, which is in the PATH by default.
 
 # Create app directory
 WORKDIR /app
