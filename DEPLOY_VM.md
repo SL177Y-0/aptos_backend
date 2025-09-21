@@ -109,10 +109,10 @@ cd aptos_backend
 
 ### 7. Build and Run the Application
 
-Build and run the application using Docker Compose.
+Build and run the application using the Docker Compose plugin.
 
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
 
 ### 8. Verify the Deployment
@@ -120,9 +120,9 @@ docker-compose up --build -d
 **1. Check the container status:**
 
 ```bash
-docker ps
+docker compose ps
 ```
-You should see your container listed with a status of `Up`.
+The `STATE` should be `Up`.
 
 **2. View the application logs:**
 
