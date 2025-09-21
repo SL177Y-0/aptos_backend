@@ -75,18 +75,6 @@ curl -X POST http://localhost:3000/deploy \
   "aptosVersion": "aptos 7.8.1"
 }
 
-#### Option 2: Docker Commands
-
-```bash
-# Build the image
-docker build -t aptos-contract-deployer .
-
-# Run the container
-docker run -p 3000:3000 aptos-contract-deployer
-```
-
-**Note**: The Docker image includes Aptos CLI pre-installed, so no additional setup is required.
-
 ### Vercel Deployment
 
 1. Connect your GitHub repository to Vercel
