@@ -1,11 +1,12 @@
-# Use Node.js 18 Alpine for smaller image size
-FROM node:18-alpine
+# Use Node.js 18 Slim for compatibility with the Aptos CLI binary
+FROM node:18-slim
 
 # Install system dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
-    unzip
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Aptos CLI
 # We download the binary directly to avoid GitHub API rate limiting issues with the install script.
