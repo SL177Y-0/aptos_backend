@@ -1,9 +1,9 @@
 [package]
-name = "Counter"
+name = "CounterV2"
 version = "0.0.1"
 
 [addresses]
-counter_addr = "0x30d3e6ccc894d4df2765383964d70ecedefd4c9c9839a29305202559206f6886"
+counter_addr = "{{ADDR}}"
 
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }

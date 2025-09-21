@@ -15,24 +15,7 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-function fixMoveToml(moveTomlContent) {
-    let tomlContent = moveTomlContent;
-    
-    if (!tomlContent.includes("[package]")) {
-        tomlContent = "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"\n\n" + tomlContent;
-    }
-    
-    if (!tomlContent.includes("AptosFramework")) {
-        if (!tomlContent.includes("[dependencies]")) {
-            tomlContent += "\n\n[dependencies]";
-        }
-        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"main\" }";
-    }
-    
-    return tomlContent;
-}
-
-function fixMoveContract(contractContent) {
+function getAccountAddress() {
     let accountAddress;
     
     try {
@@ -66,6 +49,32 @@ function fixMoveContract(contractContent) {
     }
 
     console.log(`Using account address: ${accountAddress}`);
+    return accountAddress;
+}
+
+function fixMoveToml(moveTomlContent) {
+    let tomlContent = moveTomlContent;
+    const accountAddress = getAccountAddress();
+    
+    if (!tomlContent.includes("[package]")) {
+        tomlContent = "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"\n\n" + tomlContent;
+    }
+    
+    if (!tomlContent.includes("AptosFramework")) {
+        if (!tomlContent.includes("[dependencies]")) {
+            tomlContent += "\n\n[dependencies]";
+        }
+        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"main\" }";
+    }
+    
+    // Replace {{ADDR}} with actual account address
+    tomlContent = tomlContent.replace(/\{\{ADDR\}\}/g, accountAddress);
+    
+    return tomlContent;
+}
+
+function fixMoveContract(contractContent) {
+    const accountAddress = getAccountAddress();
     
     // Replace {{ADDR}} with actual account address
     const contract = contractContent.replace(/\{\{ADDR\}\}/g, accountAddress);
