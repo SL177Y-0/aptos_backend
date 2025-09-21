@@ -4,10 +4,8 @@ import fs from "fs";
 import { execSync } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
-import cors from "cors";
 
 const app = express();
-app.use(cors());
 app.use(bodyParser.json({ limit: "10mb" }));
 
 const __filename = fileURLToPath(import.meta.url);

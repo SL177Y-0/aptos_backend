@@ -123,7 +123,7 @@ AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir 
             }
 
             try {
-                const response = await fetch('/deploy', {
+                const response = await fetch('http://localhost:3000/deploy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ moveToml, contractFile })
