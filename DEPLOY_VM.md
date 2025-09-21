@@ -96,9 +96,13 @@ Docker is a tool that packages your app and all its needs into a "magic box" cal
 
 ### Step 6: Download Your App's Code
 
-Now, let's download your app's code onto the virtual computer.
+Now, let's download your app's code onto the virtual computer. If you've run these steps before, you might see an error that the folder already exists. You can safely remove it to start fresh.
 
 ```bash
+# Remove the old directory if it exists to avoid errors
+rm -rf aptos_backend
+
+# Download the code
 git clone https://github.com/SL177Y-0/aptos_backend.git
 cd aptos_backend
 ```
@@ -128,7 +132,11 @@ Let's make sure your app is running correctly.
     You should see a message that the server has started.
 
 3.  **Test it from your local computer:**
-    *   Find your virtual computer's **External IP** address on the Google Cloud website.
+    *   **How to find your External IP address:**
+        1.  Go to the [Google Cloud Console](https://console.cloud.google.com/).
+        2.  Navigate to **Compute Engine** > **VM instances**.
+        3.  You will see a list of your virtual computers. Find the one you created (e.g., `my-app-server`).
+        4.  Look for the **External IP** column. The address will be listed there. You can click the copy icon next to it.
     *   Open a new terminal on your *own* computer and run:
         ```bash
         curl http://YOUR_VM_EXTERNAL_IP:3000/health
