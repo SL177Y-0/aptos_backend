@@ -1,50 +1,38 @@
-# Use Node.js 18 Slim for compatibility with the Aptos CLI binary
-FROM node:18-slim
+# Use the Debian 11 (Bullseye) slim image which has libssl1.1 required by the Aptos CLI
+FROM node:18-bullseye-slim
 
-# Install system dependencies
+# Install system dependencies, including the required libssl1.1
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     unzip \
     ca-certificates \
+    libssl1.1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Aptos CLI
-# We download the binary directly to avoid GitHub API rate limiting issues with the install script.
-RUN APLTOS_CLI_VERSION="2.4.0" && \
-    wget -O aptos-cli.zip "https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v${APLTOS_CLI_VERSION}/aptos-cli-${APLTOS_CLI_VERSION}-Ubuntu-x86_64.zip" && \
+# Install the latest Aptos CLI by downloading the binary directly
+# This is more reliable than the install script and avoids API rate-limiting.
+RUN LATEST_APTOS_CLI_URL=$(curl -s "https://api.github.com/repos/aptos-labs/aptos-core/releases/latest" | grep "browser_download_url.*Ubuntu-x86_64.zip" | cut -d '"' -f 4) && \
+    wget -O aptos-cli.zip "$LATEST_APTOS_CLI_URL" && \
     unzip aptos-cli.zip && \
     mv aptos /usr/local/bin/ && \
     rm aptos-cli.zip
 
-# The aptos binary is now in /usr/local/bin, which is in the PATH by default.
+# Create a non-root user for security
+RUN useradd --create-home --shell /bin/bash appuser
+WORKDIR /home/appuser
+USER appuser
 
-# Create app directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-# Using npm install instead of ci because there is no package-lock.json
+# Copy application source and install dependencies
+COPY --chown=appuser:appuser package*.json ./
 RUN npm install --only=production
 
-# Copy application files
-COPY index.js index.html ./
+COPY --chown=appuser:appuser . .
 
-# Create a non-root user for security
-# Use Debian-compatible commands for addgroup/adduser
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 --ingroup nodejs --no-create-home nodejs
-
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
-USER nodejs
-
-# Expose port
+# Expose the application port
 EXPOSE 3000
 
-# Health check
+# Health check to ensure the service is running
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
