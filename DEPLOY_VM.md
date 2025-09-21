@@ -144,3 +144,36 @@ Let's make sure your app is running correctly.
         (Replace `YOUR_VM_EXTERNAL_IP` with the actual IP address).
 
 If you see a success message, congratulations! Your app is live on the internet.
+
+### Updating Your Application
+
+If you make changes to the code, you'll need to rebuild your Docker container to see them.
+
+1.  **Connect to your VM:**
+    ```bash
+    gcloud compute ssh aptos-backend-vm --zone your-instance-zone
+    ```
+2.  **Go to your app's directory:**
+    ```bash
+    cd aptos_backend
+    ```
+3.  **Rebuild and restart your app:**
+    ```bash
+    docker compose up --build -d
+    ```
+
+This will apply your latest code changes.
+
+### How to Access the Frontend
+
+To see the web page for your application, follow these steps:
+
+1.  **Find your virtual computer's External IP address** on the Google Cloud Console (the same way you did for the test).
+2.  **Open a web browser** on your own computer.
+3.  **Go to the following address:**
+    ```
+    http://YOUR_VM_EXTERNAL_IP:3000
+    ```
+    (Replace `YOUR_VM_EXTERNAL_IP` with the actual IP address).
+
+This will open the main page of your application.
