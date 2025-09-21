@@ -2,12 +2,6 @@
 
 A simple web application for compiling and deploying Aptos Move smart contracts. Upload your Move files or paste code directly through an intuitive web interface.
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-**✅ Free to use**: Anyone can use, modify, and distribute this software freely for personal or commercial purposes.
-
 ## Features
 
 - **File Upload Support**: Upload Move.toml and contract files directly from your local machine
@@ -80,48 +74,7 @@ curl -X POST http://localhost:3000/deploy \
   "timestamp": "2025-01-21T14:20:00.000Z",
   "aptosVersion": "aptos 7.8.1"
 }
-`
 
-## Deployment
-
-### Docker Deployment (Recommended)
-
-#### Option 1: Docker Compose (Easiest)
-
-```bash
-# Start the service
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the service
-docker-compose down
-```
-
-#### Option 2: Docker Commands
-
-```bash
-# Build the image
-docker build -t aptos-contract-deployer .
-
-# Run the container
-docker run -p 3000:3000 aptos-contract-deployer
-```
-
-**Note**: The Docker image includes Aptos CLI pre-installed, so no additional setup is required.
-
-### Vercel Deployment
-
-1. Connect your GitHub repository to Vercel
-2. Set environment variables if needed
-3. Deploy automatically on push
-
-### Local Development
-
-```bash
-npm install
-npm start
 ```
 
 ## Project Structure
