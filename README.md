@@ -1,260 +1,74 @@
 # Aptos Contract Deployer
 
-A robust web application for compiling and deploying Aptos Move smart contracts with **universal compatibility** for any Move version and environment.
+A simple web application for compiling and deploying Aptos Move smart contracts. Upload your Move files or paste code directly through an intuitive web interface.
 
-##  Features
+## Features
 
-### Universal Compatibility
--  **Auto-detects and fixes** legacy Move 1.x configurations
--  **Supports modern Move 2.x** with enum, match, and advanced features
--  **Handles any TOML format** - automatically adds missing configuration
--  **Cross-platform** - works on Windows, Mac, Linux
--  **Environment agnostic** - adapts to different Aptos CLI versions
+- **File Upload Support**: Upload Move.toml and contract files directly from your local machine
+- **Multiple Contract Files**: Upload and combine multiple `.move` files in a single deployment
+- **Manual Input**: Still supports pasting code directly for quick testing
+- **Web Interface**: Clean, user-friendly interface for contract deployment
+- **REST API**: Programmatic access for automation and integration
+- **Docker Support**: Easy deployment with containerization
+- **Auto Cleanup**: Temporary files are automatically removed after deployment
 
-### Smart Contract Features
--  **Automatic configuration fixing** - adds missing edition and compiler-version
--  **Enhanced error handling** - detailed error messages and validation
--  **Legacy support** - converts old Move.toml to modern format
--  **Input validation** - prevents common mistakes and security issues
--  **Auto-cleanup** - temporary files automatically removed
+## Prerequisites
 
-### Deployment Options
--  **Web Interface** - Upload files or paste code directly
--  **REST API** - Programmatic access for automation
--  **Docker Support** - Containerized deployment
--  **Cloud Ready** - GitHub Actions, Vercel, Railway support
--  **CI/CD Pipeline** - Automated testing and deployment
+- Node.js 18+
+- Aptos CLI installed and configured
+- An Aptos account with `aptos init` completed
 
-##  Quick Start
+## Quick Start
 
-### Option 1: Local Development
-`ash
-# Clone the repository
-git clone https://github.com/SL177Y-0/aptos_backend.git
-cd aptos_backend
-
-# Install dependencies
+1. **Install dependencies:**
+```bash
 npm install
 
-# Install Aptos CLI
-curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+2. **Configure Aptos CLI:**
+```bash
+# Install Aptos CLI (see https://aptos.dev/build/cli)
 aptos init
+```
 
-# Start the server
+3. **Start the server:**
+```bash
 npm start
-`
+```
 
-### Option 2: Docker
-`ash
-# Build and run with Docker
-docker-compose up aptos-dev
+4. **Open your browser:**
+Navigate to `http://localhost:3000`
 
-# Or build manually
-docker build -f Dockerfile.move -t aptos-deployer .
-docker run -p 3000:3000 aptos-deployer
-`
+## Usage
 
-### Option 3: Cloud Deployment
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/SL177Y-0/aptos_backend)
+### Web Interface
 
-##  Universal Compatibility
+The web interface provides two ways to input your contract:
 
-This deployer automatically handles:
+#### Option 1: File Upload (Recommended)
+1. **Move.toml**: Click "Choose File" and select your `Move.toml` file
+2. **Contract Files**: Select one or more `.move` files (supports multiple selection)
+3. **Deploy**: Click the "Deploy" button
 
-### Move 1.x Contracts
-`move
-// Legacy contracts work automatically
-module 0x123::MyContract {
-    use std::signer;
-    
-    struct Data has key {
-        value: u64,
-    }
-    
-    public fun init(account: &signer) {
-        move_to(account, Data { value: 0 });
-    }
-}
-`
+#### Option 2: Manual Input
+1. **Move.toml**: Paste your Move.toml configuration in the textarea
+2. **Contract Code**: Paste your Move contract code in the textarea
+3. **Deploy**: Click the "Deploy" button
 
-### Move 2.x Contracts
-`move
-// Modern contracts with advanced features
-module 0x123::MyContract {
-    use std::signer;
-    use std::error;
-    
-    enum Status has drop {
-        Active,
-        Inactive,
-    }
-    
-    struct Data has key {
-        value: u64,
-        status: Status,
-    }
-    
-    public entry fun init(account: &signer) {
-        move_to(account, Data { 
-            value: 0,
-            status: Status::Active,
-        });
-    }
-}
-`
+### API Usage
 
-### Automatic TOML Fixing
-The deployer automatically converts legacy Move.toml:
+Send a POST request to `/deploy`:
 
-**Before (Legacy):**
-`	oml
-[package]
-name = "MyContract"
-version = "1.0.0"
-
-[addresses]
-my_addr = "0x123"
-`
-
-**After (Auto-fixed):**
-`	oml
-[package]
-name = "MyContract"
-version = "1.0.0"
-edition = "2024.beta"
-compiler-version = "2.1.0"
-
-[addresses]
-my_addr = "0x123"
-
-[dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
-`
-
-##  API Usage
-
-### Deploy Contract
-`ash
-curl -X POST https://your-deployment-url.com/deploy \
+```bash
+curl -X POST http://localhost:3000/deploy \
   -H "Content-Type: application/json" \
   -d '{
-    "moveToml": "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"",
-    "contractFile": "module 0x123::MyContract {\n    // Your Move code\n}"
+    "moveToml": "[package]\nname = \"MyContract\"\nversion = \"1.0.0\"\n[dependencies]\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"main\" }",
+    "contractFile": "module {{ADDR}}::my_contract {\n    // Your Move code here\n}"
   }'
-`
+```
 
-### Health Check
-`ash
-curl https://your-deployment-url.com/health
-`
-
-##  Docker Deployment
-
-### Docker Compose
-`yaml
-version: '3.8'
-services:
-  aptos-deployer:
-    build:
-      context: .
-      dockerfile: Dockerfile.move
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-`
-
-### Manual Docker
-`ash
-# Build
-docker build -f Dockerfile.move -t aptos-deployer .
-
-# Run
-docker run -p 3000:3000 aptos-deployer
-`
-
-##  Cloud Deployment
-
-### Vercel (Recommended)
-1. Fork this repository
-2. Connect to [Vercel](https://vercel.com)
-3. Deploy automatically
-
-### Railway
-1. Connect your GitHub repository
-2. Railway will auto-detect Node.js
-3. Deploy with one click
-
-### GitHub Actions
-The repository includes a complete CI/CD pipeline:
--  Automatic testing on every push
--  Move compilation validation
--  Node.js server testing
--  Ready for cloud deployment
-
-##  Development
-
-### Project Structure
-`
-aptos_backend/
- sources/
-    contract.move          # Example Move contract
- .github/workflows/
-    deploy.yml            # CI/CD pipeline
-    aptos.yml             # Aptos-specific tests
- index.js                  # Enhanced Node.js backend
- index.html                # Web interface
- move.toml                 # Move configuration
- Dockerfile.move           # Docker setup
- docker-compose.yml        # Docker orchestration
- vercel.json              # Vercel deployment config
- README.md                # This file
-`
-
-### Key Features
-- **Universal Compatibility**: Handles any Move version automatically
-- **Smart Error Handling**: Detailed error messages and automatic fixes
-- **Security**: Input validation, file size limits, timeout protection
-- **Scalability**: Docker support, cloud deployment ready
-- **Developer Experience**: Comprehensive logging and debugging
-
-##  Troubleshooting
-
-### Common Issues
-
-**"Aptos CLI not found"**
-`ash
-# Install Aptos CLI
-curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
-aptos init
-`
-
-**"Compilation failed"**
-- The deployer automatically fixes most common issues
-- Check that your Move contract syntax is correct
-- Ensure proper module structure
-
-**"Deployment timeout"**
-- Large contracts may take longer to compile
-- The deployer has built-in timeout protection
-- Try breaking large contracts into smaller modules
-
-### Environment Issues
-The deployer automatically handles:
--  Different Aptos CLI versions
--  Missing Move.toml configuration
--  Legacy vs modern Move syntax
--  Cross-platform compatibility
-
-##  Monitoring
-
-### Health Check
-`ash
-curl https://your-deployment-url.com/health
-`
-
-Response:
-`json
+**Response:**
+```json
 {
   "status": "ok",
   "timestamp": "2025-01-21T14:20:00.000Z",
@@ -262,23 +76,86 @@ Response:
 }
 `
 
-##  Contributing
+## Docker Deployment
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test with different Move versions
-5. Submit a pull request
+Build and run with Docker:
 
-##  License
+```bash
+# Build the image
+docker build -t aptos-deployer .
 
-This project is open source and available under the [MIT License](LICENSE).
+# Run the container
+docker run -p 3000:3000 aptos-deployer
+```
 
-##  Links
+## Project Structure
 
-- **Repository**: https://github.com/SL177Y-0/aptos_backend
-- **Aptos CLI**: https://aptos.dev/build/cli
-- **Move Language**: https://aptos.dev/build/move
+```
+backend/
+├── index.js          # Express server with deployment logic
+├── index.html        # Web interface with file upload
+├── package.json      # Dependencies and scripts
+├── Dockerfile        # Container configuration
+└── README.md         # This documentation
+```
+
+## How It Works
+
+1. **File Processing**: Uploaded files are read and combined into the appropriate format
+2. **Temporary Project**: A unique project directory is created for each deployment
+3. **Compilation**: Aptos CLI compiles the Move contracts
+4. **Deployment**: Contracts are published to the Aptos blockchain
+5. **Response**: Transaction hash and module address are returned
+6. **Cleanup**: Temporary files are automatically removed
+
+## Supported File Types
+
+- **Move.toml**: Project configuration files (`.toml`)
+- **Move Contracts**: Smart contract source files (`.move`)
+
+## Important Notes
+
+- **Account Setup**: Ensure your Aptos CLI is configured with `aptos init`
+- **APT Tokens**: Your account needs sufficient APT for deployment fees
+- **File Size**: Large contracts may take longer to compile and deploy
+- **Multiple Files**: When uploading multiple `.move` files, they're combined with clear separators
+- **Temporary Storage**: Files are temporarily stored during deployment and automatically cleaned up
+
+## Troubleshooting
+
+### Common Issues
+
+**"Aptos CLI not found" error:**
+```bash
+# Install Aptos CLI
+curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+aptos init
+```
+
+**Deployment fails:**
+- Check your account has sufficient APT tokens
+- Verify Move contract syntax is correct
+- Ensure Move.toml dependencies are properly configured
+- Check Aptos CLI is properly authenticated
+
+**File upload issues:**
+- Ensure files have correct extensions (`.toml`, `.move`)
+- Check file permissions and accessibility
+- Try manual input as a fallback
+
+### Getting Help
+
+- **Aptos CLI Documentation**: https://aptos.dev/build/cli
+- **Move Language Guide**: https://aptos.dev/build/move
 - **Aptos Framework**: https://github.com/aptos-labs/aptos-core
 
----
+## Development
+
+To contribute or modify this project:
+
+1. Fork the repository
+2. Make your changes
+3. Test with local Move contracts
+4. Submit a pull request
+
+The codebase is intentionally simple and focused on the core deployment functionality, making it easy to understand and extend.
