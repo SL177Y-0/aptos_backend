@@ -24,7 +24,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+# Using npm install instead of ci because there is no package-lock.json
+RUN npm install --only=production
 
 # Copy application files
 COPY index.js index.html ./
