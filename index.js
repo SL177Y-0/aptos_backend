@@ -113,7 +113,7 @@ app.post("/deploy", async (req, res) => {
 
       console.log("Publishing contract...");
       const output = execSync(
-        `aptos move publish --package-dir ${projectDir} --assume-yes --profile default`,
+        `aptos move publish --package-dir ${projectDir} --assume-yes --profile default --max-gas 20000 --gas-unit-price 100`,
         { 
           stdio: "pipe", 
           timeout: 300000,
