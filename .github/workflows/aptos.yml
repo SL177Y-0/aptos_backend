@@ -1,0 +1,30 @@
+﻿name: Aptos Move CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Aptos CLI
+      run: |
+        curl -fsSL "https://aptos.dev/scripts/install_cli.py" | python3
+    
+    - name: Compile Move
+      run: aptos move compile
+      
+    - name: Test Move
+      run: aptos move test
+      
+    - name: Deploy to Testnet
+      if: github.ref == 'refs/heads/main'
+      env:
+        APTOS_PRIVATE_KEY: ${{ secrets.APTOS_PRIVATE_KEY }}
+      run: aptos move publish --assume-yes

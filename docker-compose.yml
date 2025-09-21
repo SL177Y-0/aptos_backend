@@ -1,0 +1,34 @@
+﻿version: '3.8'
+
+services:
+  aptos-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.move
+    volumes:
+      - .:/app
+      - aptos-cache:/root/.move
+    environment:
+      - NODE_ENV=development
+    command: ["aptos", "move", "compile"]
+    
+  aptos-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.move
+    volumes:
+      - .:/app
+    command: ["aptos", "move", "test"]
+    
+  aptos-deploy:
+    build:
+      context: .
+      dockerfile: Dockerfile.move
+    volumes:
+      - .:/app
+    environment:
+      - APTOS_NETWORK=testnet
+    command: ["aptos", "move", "publish", "--assume-yes"]
+
+volumes:
+  aptos-cache:

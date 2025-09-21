@@ -1,0 +1,32 @@
+﻿# Dependencies
+node_modules/
+package-lock.json
+
+# Build artifacts
+build/
+*.move
+
+# Temporary project directories
+project_*/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Docker
+.dockerignore

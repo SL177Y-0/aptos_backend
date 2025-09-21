@@ -1,11 +1,9 @@
 [package]
-name = "Counter"
-version = "0.0.1"
-edition = "2024.beta"
-compiler-version = "2.1.0"
+name = "TestV1"
+version = "1.0.0"
 
 [addresses]
-counter_addr = "0x30d3e6ccc894d4df2765383964d70ecedefd4c9c9839a29305202559206f6886"
+test_addr = "0x123"
 
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
