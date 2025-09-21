@@ -17,35 +17,32 @@ app.get("/", (req, res) => {
 
 function getAccountAddress() {
     let accountAddress;
-    
+    const fallbackAddress = "0x30d3e6ccc894d4df2765383964d70ecedefd4c9c9839a29305202559206f6886";
+
     try {
-        const profileInfo = execSync("aptos account list --profile default", { 
-            stdio: "pipe", 
-            encoding: "utf8" 
+        const profileInfo = execSync("aptos account list --profile default", {
+            stdio: "pipe",
+            encoding: "utf8"
         }).toString();
-        
+
         const profileData = JSON.parse(profileInfo);
-        
+
         if (profileData.Result && profileData.Result.length > 0) {
             const accountObject = profileData.Result[0];
             const accountType = Object.keys(accountObject)[0];
             const accountDetails = accountObject[accountType];
-            
+
             if (accountDetails && accountDetails.coin_register_events && accountDetails.coin_register_events.guid && accountDetails.coin_register_events.guid.id && accountDetails.coin_register_events.guid.id.addr) {
                 accountAddress = accountDetails.coin_register_events.guid.id.addr;
-            } else {
-                throw new Error("Could not find account address in the expected location within the JSON output.");
             }
-        } else {
-            throw new Error("Could not find 'Result' array in the output of 'aptos account list --profile default'.");
         }
     } catch (e) {
-        console.error("Failed to get account address for 'default' profile.", e);
-        throw new Error("Could not determine account address. Please ensure the 'default' profile is configured correctly by running 'aptos init'.");
+        console.warn("Could not determine account address from 'aptos account list'. Using fallback address.");
     }
-    
+
     if (!accountAddress) {
-        throw new Error("Failed to extract account address, the value is empty.");
+        console.log("Using fallback account address.");
+        accountAddress = fallbackAddress;
     }
 
     console.log(`Using account address: ${accountAddress}`);
