@@ -1,6 +1,6 @@
-# Deploying the Aptos Backend on a Google Cloud VM
+# Deploying the Aptos Backend on a Google Cloud VM (Final Guide)
 
-This guide provides step-by-step instructions for deploying the application on a Google Cloud Virtual Machine. The application is containerized using Docker, which simplifies the deployment process.
+This comprehensive guide provides a detailed, step-by-step process for deploying the application on a Google Cloud Virtual Machine. This guide is based on the latest official documentation and best practices to ensure a successful deployment.
 
 ## Prerequisites
 
@@ -11,70 +11,72 @@ This guide provides step-by-step instructions for deploying the application on a
 
 ### 1. Create a Google Cloud VM Instance
 
-First, you need to create a new VM instance in your GCP project.
+First, create a new VM instance in your GCP project.
 
 1.  **Go to the VM instances page:**
     *   Open the [Google Cloud Console](https://console.cloud.google.com/).
     *   Navigate to **Compute Engine** > **VM instances**.
-2.  **Create a new instance:**
-    *   Click **CREATE INSTANCE**.
-    *   **Name:** Give your instance a name (e.g., `aptos-backend-vm`).
-    *   **Region and Zone:** Choose a region and zone that is close to you.
-    *   **Machine configuration:** A small machine type like `e2-small` or `e2-medium` should be sufficient.
-    *   **Boot disk:** Select a recent version of **Ubuntu** (e.g., Ubuntu 22.04 LTS).
-    *   **Firewall:** Check the box for **Allow HTTP traffic**. This is important for the next step.
+2.  **Create a new instance with the following settings:**
+    *   **Name:** `aptos-backend-vm`
+    *   **Region and Zone:** Choose a region and zone close to you for minimal latency.
+    *   **Machine configuration:** `e2-medium` is recommended for a balance of performance and cost.
+    *   **Boot disk:** Select **Ubuntu 22.04 LTS**. This is a long-term support release, ensuring stability.
+    *   **Firewall:** Check **Allow HTTP traffic**.
     *   Click **Create**.
 
 ### 2. Configure Firewall Rules
 
-By default, your VM will not allow traffic on port 3000. You need to create a firewall rule to open this port.
+Create a firewall rule to allow traffic on port 3000, which is required by the application.
 
 1.  **Go to the Firewall rules page:**
-    *   In the Google Cloud Console, navigate to **VPC network** > **Firewall**.
-2.  **Create a new firewall rule:**
-    *   Click **CREATE FIREWALL RULE**.
-    *   **Name:** `allow-port-3000`.
-    *   **Network:** Leave as `default`.
-    *   **Targets:** Select `All instances in the network`.
-    *   **Source filter:** Select `IP ranges`.
-    *   **Source IP ranges:** Enter `0.0.0.0/0` to allow traffic from any IP address.
-    *   **Protocols and ports:** Select **Specified protocols and ports**, then check **TCP** and enter `3000` in the text box.
+    *   Navigate to **VPC network** > **Firewall**.
+2.  **Create a new firewall rule with these settings:**
+    *   **Name:** `allow-port-3000`
+    *   **Network:** `default`
+    *   **Targets:** `All instances in the network`
+    *   **Source filter:** `IP ranges`
+    *   **Source IP ranges:** `0.0.0.0/0` (allows traffic from any IP address)
+    *   **Protocols and ports:** Select **TCP** and enter `3000`.
     *   Click **Create**.
 
 ### 3. Connect to Your VM
 
-Connect to your newly created VM instance. You can do this through the Google Cloud Console or using the `gcloud` CLI.
+Connect to your VM using the `gcloud` CLI.
 
 ```bash
-gcloud compute ssh your-instance-name --zone your-instance-zone
+gcloud compute ssh aptos-backend-vm --zone your-instance-zone
 ```
 
-Replace `your-instance-name` and `your-instance-zone` with the values from the VM you created.
+Replace `your-instance-zone` with the zone you selected during VM creation.
 
-### 4. Install Git
+### 4. System Update and Git Installation
 
-If Git is not already installed, install it now.
+Ensure your system is up-to-date and install Git.
 
 ```bash
-sudo apt-get update
+sudo apt-get update -y
+sudo apt-get upgrade -y
 sudo apt-get install -y git
 ```
 
-### 5. Install Docker and Docker Compose
+### 5. Install Docker and Docker Compose (Official Method)
 
-The application is deployed using Docker. Follow the official recommended steps to install Docker Engine and Docker Compose.
+Follow the official recommended steps to install Docker Engine.
 
-**1. Set up Docker's `apt` repository:**
+**1. Uninstall old versions (if any):**
 
 ```bash
-# Add Docker's official GPG key:
-sudo apt-get update
+for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove $pkg; done
+```
+
+**2. Set up Docker's `apt` repository:**
+
+```bash
 sudo apt-get install -y ca-certificates curl
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-# Add the repository to Apt sources:
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
@@ -82,29 +84,23 @@ echo \
 sudo apt-get update
 ```
 
-**2. Install Docker packages:**
+**3. Install Docker packages:**
 
 ```bash
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-**3. Add your user to the `docker` group:**
-
-This allows you to run Docker commands without `sudo`.
+**4. Add your user to the `docker` group:**
 
 ```bash
 sudo usermod -aG docker ${USER}
 ```
 
-You will need to log out and log back in for this change to take effect. After logging back in, verify that you can run Docker commands without `sudo`:
-
-```bash
-docker --version
-```
+**Important:** You must log out and log back in for this change to take effect.
 
 ### 6. Clone the Repository
 
-Clone the application's source code from its Git repository.
+Clone the application's source code.
 
 ```bash
 git clone https://github.com/SL177Y-0/aptos_backend.git
@@ -113,31 +109,41 @@ cd aptos_backend
 
 ### 7. Build and Run the Application
 
-With Docker and Docker Compose installed, you can now build and run the application.
+Build and run the application using Docker Compose.
 
 ```bash
 docker-compose up --build -d
 ```
 
-This command will build the Docker image and start a container in detached mode, exposing the application on port 3000.
-
 ### 8. Verify the Deployment
 
-Check the status of your running container:
+**1. Check the container status:**
 
 ```bash
-docker-compose ps
+docker ps
 ```
+You should see your container listed with a status of `Up`.
 
-View the application logs to ensure it started correctly:
+**2. View the application logs:**
 
 ```bash
-docker-compose logs -f
+docker logs aptos_backend-aptos-deployer-1 -f
 ```
+Look for a message indicating the server has started successfully.
 
-The application should now be running and accessible on your VM's external IP address. You can find the external IP on the VM instances page in the Google Cloud Console.
-
-Test the application by navigating to `http://YOUR_VM_EXTERNAL_IP:3000/health` in your web browser or by using `curl`.
+**3. Test the health check endpoint from within the VM:**
 
 ```bash
 curl http://localhost:3000/health
+```
+This should return a success message.
+
+**4. Test from your local machine:**
+
+Find your VM's external IP address from the Google Cloud Console. Open a terminal on your local machine and run:
+
+```bash
+curl http://YOUR_VM_EXTERNAL_IP:3000/health
+```
+
+If this command is successful, your application is deployed and accessible from the internet.
