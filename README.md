@@ -75,17 +75,6 @@ curl -X POST http://localhost:3000/deploy \
   "aptosVersion": "aptos 7.8.1"
 }
 
-### Vercel Deployment
-
-1. Connect your GitHub repository to Vercel
-2. Set environment variables if needed
-3. Deploy automatically on push
-
-### Local Development
-
-```bash
-npm install
-npm start
 ```
 
 ## Project Structure
