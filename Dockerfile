@@ -21,6 +21,10 @@ RUN APTOS_CLI_VERSION="4.2.5" && \
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser
 WORKDIR /home/appuser
+
+# Initialize a default Aptos profile
+RUN aptos init --network testnet --assume-yes
+
 USER appuser
 
 # Copy application source and install dependencies
