@@ -10,10 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl1.1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the latest Aptos CLI by downloading the binary directly
-# This is more reliable than the install script and avoids API rate-limiting.
-RUN LATEST_APTOS_CLI_URL=$(curl -s "https://api.github.com/repos/aptos-labs/aptos-core/releases/latest" | grep "browser_download_url.*Ubuntu-x86_64.zip" | cut -d '"' -f 4) && \
-    wget -O aptos-cli.zip "$LATEST_APTOS_CLI_URL" && \
+# Install a stable version of the Aptos CLI by downloading the binary directly.
+# This is the most reliable method and avoids API rate-limiting or script failures.
+RUN APTOS_CLI_VERSION="2.4.0" && \
+    wget -O aptos-cli.zip "https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v${APTOS_CLI_VERSION}/aptos-cli-${APTOS_CLI_VERSION}-Ubuntu-x86_64.zip" && \
     unzip aptos-cli.zip && \
     mv aptos /usr/local/bin/ && \
     rm aptos-cli.zip
