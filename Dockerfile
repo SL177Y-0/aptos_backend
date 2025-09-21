@@ -28,12 +28,15 @@ RUN npm install --only=production
 
 COPY --chown=appuser:appuser . .
 
-# Switch to appuser BEFORE setting up Aptos
-USER appuser
-
-# Create .aptos directory and copy the working config
+# Create .aptos directory and copy config BEFORE switching user
 RUN mkdir -p /home/appuser/.aptos
 COPY --chown=appuser:appuser aptos-config.yaml /home/appuser/.aptos/config.yaml
+
+# Set environment variables for Aptos BEFORE switching user
+ENV APTOS_CONFIG_DIR=/home/appuser/.aptos
+
+# Switch to appuser AFTER setting up everything
+USER appuser
 
 # Expose the application port
 EXPOSE 3000

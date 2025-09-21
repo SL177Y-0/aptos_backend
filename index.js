@@ -61,12 +61,12 @@ function fixMoveToml(moveTomlContent) {
         if (!tomlContent.includes("[dependencies]")) {
             tomlContent += "\n\n[dependencies]";
         }
-        // Use a stable framework version compatible with the CLI
-        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"aptos-node-v1.18.0\" }";
+        // Use a stable framework version compatible with CLI 4.2.5
+        tomlContent += "\nAptosFramework = { git = \"https://github.com/aptos-labs/aptos-core.git\", subdir = \"aptos-move/framework/aptos-framework\", rev = \"aptos-node-v1.15.0\" }";
     }
     
-    // Replace main branch with stable version
-    tomlContent = tomlContent.replace(/rev = "main"/g, 'rev = "aptos-node-v1.18.0"');
+    // Replace main branch with stable version compatible with CLI 4.2.5
+    tomlContent = tomlContent.replace(/rev = "main"/g, 'rev = "aptos-node-v1.15.0"');
     
     // Replace {{ADDR}} with actual account address
     tomlContent = tomlContent.replace(/\{\{ADDR\}\}/g, accountAddress);
@@ -78,7 +78,10 @@ function fixMoveContract(contractContent) {
     const accountAddress = getAccountAddress();
     
     // Replace {{ADDR}} with actual account address
-    const contract = contractContent.replace(/\{\{ADDR\}\}/g, accountAddress);
+    let contract = contractContent.replace(/\{\{ADDR\}\}/g, accountAddress);
+    
+    // Replace common module names with the actual account address
+    contract = contract.replace(/module\s+\w+::/g, `module ${accountAddress}::`);
     
     return contract;
 }
@@ -113,7 +116,7 @@ app.post("/deploy", async (req, res) => {
 
       console.log("Publishing contract...");
       const output = execSync(
-        `aptos move publish --package-dir ${projectDir} --assume-yes --profile default --max-gas 20000 --gas-unit-price 100`,
+        `aptos move publish --package-dir ${projectDir} --assume-yes --max-gas 20000 --gas-unit-price 100 --private-key 0xaa2745dce28e8a013cf82c163d4247e8cb41fbb5feacbf304e98a06f9d613d82 --url https://fullnode.testnet.aptoslabs.com`,
         { 
           stdio: "pipe", 
           timeout: 300000,
