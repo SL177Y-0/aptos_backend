@@ -1,3 +1,96 @@
+Small Guide!
+
+# Aptos Fullnode REST API Overview
+
+The **Aptos Fullnode REST API** is the low-level HTTP interface available on every fullnode under the `/v1` path.  
+It is the **primary tool** for:
+- Reading the current chain state (real-time).
+- Submitting transactions.
+- Simulating operations.
+
+For **complex historical, aggregated, or relational queries** (e.g., scanning all NFTs owned by a user, analytics, or iterating over tables), use the **Aptos Indexer GraphQL API** instead.
+
+---
+
+##  Capabilities of the Fullnode REST API
+
+### 1. Accounts and State
+- **Account Metadata**
+  - `GET /v1/accounts/{address}` → Sequence number (nonce), authentication key.
+- **All Resources**
+  - `GET /v1/accounts/{address}/resources` → Lists all Move resources under the account (e.g., balances, NFTs).
+- **Specific Resource**
+  - `GET /v1/accounts/{address}/resource/{type}` → Fetches a single Move resource by type.
+- **Outbound Transactions**
+  - `GET /v1/accounts/{address}/transactions` → Lists committed transactions sent from the account.
+
+---
+
+### 2. Smart Contracts (Modules and State)
+- **Deployed Modules**
+  - `GET /v1/accounts/{address}/modules` → Lists all modules (bytecode + ABI).
+- **Single Module**
+  - `GET /v1/accounts/{address}/module/{name}` → Retrieves bytecode + ABI of a single module.
+- **View Functions**
+  - `POST /v1/view` → Executes a read-only Move function without gas.
+- **Table Access**
+  - `POST /v1/tables/{handle}/item` → Reads a typed entry from a Move Table.
+  - `POST /v1/tables/{handle}/raw_item` → Reads a raw BCS entry.
+
+---
+
+### 3. Transactions and Events
+- **Transaction Simulation**
+  - `POST /v1/transactions/simulate` → Dry-run a transaction, get gas usage + events.
+- **Gas Price**
+  - `GET /v1/estimate_gas_price` → Current gas price estimates.
+- **Committed Transactions**
+  - `GET /v1/transactions` → Paginated global feed of transactions.
+- **Transaction Lookup**
+  - `GET /v1/transactions/by_hash/{hash}` → Lookup by hash.  
+  - `GET /v1/transactions/by_version/{version}` → Lookup by ledger version.
+- **Events**
+  - `GET /v1/accounts/{address}/events/{creation_number}` → Events by creation number.  
+  - `GET /v1/accounts/{address}/events/{event_handle}/{field_name}` → Events by event handle.
+
+---
+
+### 4. Blocks and Ledger Info
+- **Blocks**
+  - `GET /v1/blocks/by_height/{height}` → Block by height (with optional transactions).  
+  - `GET /v1/blocks/by_version/{version}` → Block containing a specific version.
+- **Ledger Info**
+  - `GET /v1/` → General network metadata (chain ID, ledger version, block height, etc.).  
+  - `GET /v1/healthy` → Node health check.
+
+---
+
+## ⏳ Historical Data
+- Most read endpoints accept `?ledger_version=` to fetch state at a specific past version.  
+- If data is **pruned**, the API will return `410 Gone`.  
+- For **deep history** or **aggregations**, use:
+  - Archive Nodes
+  - Aptos Indexer GraphQL API
+
+---
+
+##  Limitations of the Fullnode REST API
+- Cannot iterate over Move Tables (must know the key).  
+- Cannot efficiently scan NFTs, inbound transfers, or perform analytics.  
+- Pruned historical data is unavailable.  
+- Returns raw Move structures, not relational models.
+
+---
+
+## When to Use What
+- **Fullnode REST API** → Real-time reads, transaction submission, simulations, specific resource lookups.  
+- **Indexer GraphQL API** → Complex queries, scanning, aggregation, analytics, deep history.
+
+
+
+
+---
+
 The **Aptos Fullnode REST API** is the low-level HTTP interface embedded in every Aptos fullnode under the `/v1` path. It is designed as a direct, low-latency conduit to the blockchain's state and is the primary tool for reading the current chain state, submitting transactions, and simulating operations.
 
 For complex historical, aggregated, or relational queries (like scanning all NFTs owned by a user or performing analytics), the sources recommend using the **Aptos Indexer GraphQL API** instead of the Fullnode REST API.
@@ -184,4 +277,5 @@ The API handles the entire transaction lifecycle and general chain metadata.
 
 *   **Historical State Queries**: Most read endpoints accept the query parameter `?ledger_version=` to retrieve the state as it existed immediately after that transaction version.
 *   **Pruning Limitation**: Fullnodes may **prune** old transactions and state versions to save storage space. Querying pruned data results in a **410 Gone** error.
+
 *   **Indexer Necessity**: For tasks involving **complex queries, filtering, aggregation, or iteration** (like scanning all keys in a Move Table or retrieving a user's full, deep historical NFT list), the sources strongly recommend using the **Aptos Indexer GraphQL API** instead of the Fullnode REST API. The Fullnode API is designed for immediate, specific lookups, not broad data analytics.
