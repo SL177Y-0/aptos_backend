@@ -2,7 +2,7 @@
 
 A production-ready Docker containerized backend service for compiling and deploying Aptos Move smart contracts to the testnet. This service provides a REST API and web interface for seamless contract deployment.
 
-## 🚀 Features
+##  Features
 
 - **Docker Containerized**: Fully containerized with Aptos CLI 4.2.5
 - **REST API**: Simple HTTP API for contract deployment
@@ -13,7 +13,7 @@ A production-ready Docker containerized backend service for compiling and deploy
 - **Health Monitoring**: Built-in health checks and monitoring
 - **Security**: Non-root user execution and proper file permissions
 
-## 📋 Prerequisites
+##  Prerequisites
 
 - Docker and Docker Compose
 - Aptos testnet account with APT tokens for gas fees
@@ -61,7 +61,7 @@ docker-compose logs -f
 - **Health Check**: http://localhost:3000/health
 - **API Endpoint**: http://localhost:3000/deploy
 
-## 📡 API Usage
+##  API Usage
 
 ### Deploy Contract
 
@@ -104,7 +104,7 @@ curl http://localhost:3000/health
 }
 ```
 
-## 🏗️ Move Contract Requirements
+## Move Contract Requirements
 
 ### Move.toml Format
 
@@ -135,7 +135,7 @@ module YourContract::YourContract {
 - Module names are automatically replaced with your account address
 - Compatible with Move 1.x syntax (CLI 4.2.5)
 
-## 🐳 Docker Configuration
+##  Docker Configuration
 
 ### Dockerfile Features
 
@@ -157,7 +157,7 @@ APTOS_CONFIG_DIR=/home/appuser/.aptos
 - **Application**: 3000 (configurable via `PORT` environment variable)
 - **Health Check**: Built-in endpoint at `/health`
 
-## 🔧 Development
+##  Development
 
 ### Local Development
 
@@ -181,7 +181,7 @@ curl -X POST http://localhost:3000/deploy \
   }'
 ```
 
-## 📊 Monitoring
+##  Monitoring
 
 ### Health Check
 
@@ -208,7 +208,7 @@ docker-compose logs -f
 docker-compose logs -f aptos-deployer
 ```
 
-## 🚨 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -247,40 +247,20 @@ docker-compose down
 docker-compose up --build
 ```
 
-## 🔐 Security
+## Security
 
 - **Non-root Execution**: Container runs as `appuser`
 - **File Permissions**: Proper ownership and permissions
 - **Network Security**: Only necessary ports exposed
 - **Private Key Handling**: Secure configuration management
 
-## 📈 Performance
+## Performance
 
 - **Optimized Build**: Minimal Docker image size
 - **Efficient Compilation**: Cached dependencies
 - **Resource Management**: Proper cleanup of temporary files
 - **Health Monitoring**: Built-in performance tracking
 
-## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
 
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🆘 Support
-
-For issues and questions:
-- Check the troubleshooting section
-- Review container logs
-- Verify Aptos CLI compatibility
-- Ensure proper account configuration
-
----
-
-**Ready to deploy Aptos contracts? Start with `docker-compose up --build -d` and visit http://localhost:3000!** 🚀
+**Ready to deploy Aptos contracts? Start with `docker-compose up --build -d` and visit http://localhost:3000!** 
